@@ -30,4 +30,3 @@ for entity in feed_dict['entity']:
 vehicles_json.sort(key=extract_timestamp, reverse=True)
 
 print(json.dumps(vehicles_json))
-

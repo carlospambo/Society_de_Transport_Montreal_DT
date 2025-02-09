@@ -1,9 +1,7 @@
-import docker
-import os
-import subprocess
-import time
+from docker import errors
+import docker, os, subprocess, time
 
-default_docker_compose_command = "docker compose up --detach --build"
+DEFAULT_DOCKER_COMPOSE_COMMAND = "docker compose up --detach --build"
 
 def kill_container(container_name):
     print("Searching for container with the name: " + container_name)
@@ -16,7 +14,7 @@ def kill_container(container_name):
             container.kill()
             print(client.containers.get(container_name).status)
         assert client.containers.get(container_name).status != "running"
-    except (docker.errors.NotFound, docker.errors.APIError) as x:
+    except (errors.NotFound, errors.APIError) as x:
         print("Exception in attempt to kill container: " + str(x))
     finally:
         client.close()
@@ -28,8 +26,8 @@ def start(log_file_path, docker_compose_directory_path, test_connection_function
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
     with open(log_file_path, "wt") as f:
-        print("Running docker-compose command: " + default_docker_compose_command)
-        proc = subprocess.run(default_docker_compose_command, cwd=docker_compose_directory_path, shell=True, stdout=f)
+        print(f"Running docker-compose command: {DEFAULT_DOCKER_COMPOSE_COMMAND}")
+        proc = subprocess.run(DEFAULT_DOCKER_COMPOSE_COMMAND, cwd=docker_compose_directory_path, shell=True, stdout=f)
         if proc.returncode == 0:
             print("docker-compose successful.")
         else:
