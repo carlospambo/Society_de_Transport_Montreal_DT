@@ -6,6 +6,7 @@ DEFAULT_DOCKER_COMPOSE_COMMAND = "docker compose up --detach --build"
 def kill_container(container_name):
     print("Searching for container with the name: " + container_name)
     client = docker.from_env()
+
     try:
         container = client.containers.get(container_name)
         print("Container status: " + container.status)
