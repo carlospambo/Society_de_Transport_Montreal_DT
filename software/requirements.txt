@@ -1,0 +1,12 @@
+docker>=7.1.0
+matplotlib
+numpy
+pandas
+pika
+plotly
+pyhocon
+pytz
+requests
+scipy
+sympy
+argparse
