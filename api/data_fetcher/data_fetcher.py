@@ -1,18 +1,17 @@
 
 from google.transit import gtfs_realtime_pb2
 import requests, json, protobuf_to_dict
-import logging
 
 valid_route_ids  = []
 url = ""
 headers = { }
 
-def extract_timestamp(json):
+def extract_timestamp(data):
     try:
-        return int(json['vehicle']['timestamp'])
+        return int(data['vehicle']['timestamp'])
 
     except KeyError as e:
-        print("")
+        print(f"Exception: {str(e)}")
         return 0
 
 feed = gtfs_realtime_pb2.FeedMessage()
