@@ -1,10 +1,16 @@
-from docker import errors
-import docker, os, subprocess, time
+import logging
+import docker
+import os
+import subprocess
+import time
 
 DEFAULT_DOCKER_COMPOSE_COMMAND = "docker compose up --detach --build"
 
+logging.basicConfig(level=logging.INFO)
+
+
 def kill_container(container_name):
-    print("Searching for container with the name: " + container_name)
+    logging.info("Searching for container with the name: " + container_name)
     client = docker.from_env()
 
     try:
