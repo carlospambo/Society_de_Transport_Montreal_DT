@@ -1,12 +1,8 @@
-import logging.config
 import os
+import logging.config
 from pyhocon import ConfigFactory
 
 def resource_file_path(filename):
-    """ Search for filename in the list of directories specified in the
-        PYTHONPATH environment variable.
-        Taken from https://stackoverflow.com/questions/45806838/can-i-locate-resource-file-in-pythonpath
-    """
     python_path = os.environ.get("PYTHONPATH")
     if python_path is None:
         directories = ['.']

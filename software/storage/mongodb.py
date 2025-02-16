@@ -1,5 +1,3 @@
-from turtledemo.chaos import coosys
-
 import pymongo.errors
 from pymongo import MongoClient
 import logging

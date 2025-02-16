@@ -3,8 +3,8 @@ import inspect
 import pika
 import logging
 
-from software.communication.rabbitmq import RabbitMQ
-from software.communication.protocol import decode_json, encode_json
+from communication.rabbitmq import RabbitMQ
+from communication.protocol import decode_json, encode_json
 
 METHOD_ATTRIBUTE = "method"
 ARGS_ATTRIBUTE = "args"

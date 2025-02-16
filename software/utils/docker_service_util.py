@@ -8,11 +8,9 @@ DEFAULT_DOCKER_COMPOSE_COMMAND = "docker compose up --detach --build"
 
 logging.basicConfig(level=logging.INFO)
 
-
 def kill_container(container_name):
     logging.info("Searching for container with the name: " + container_name)
     client = docker.from_env()
-
     try:
         container = client.containers.get(container_name)
         print("Container status: " + container.status)
@@ -21,7 +19,7 @@ def kill_container(container_name):
             container.kill()
             print(client.containers.get(container_name).status)
         assert client.containers.get(container_name).status != "running"
-    except (errors.NotFound, errors.APIError) as x:
+    except (docker.errors.NotFound, docker.errors.APIError) as x:
         print("Exception in attempt to kill container: " + str(x))
     finally:
         client.close()
@@ -34,6 +32,7 @@ def start(log_file_path, docker_compose_directory_path, test_connection_function
 
     with open(log_file_path, "wt") as f:
         print(f"Running docker-compose command: {DEFAULT_DOCKER_COMPOSE_COMMAND}")
+
         proc = subprocess.run(DEFAULT_DOCKER_COMPOSE_COMMAND, cwd=docker_compose_directory_path, shell=True, stdout=f)
         if proc.returncode == 0:
             print("docker-compose successful.")

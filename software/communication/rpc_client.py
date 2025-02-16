@@ -3,9 +3,9 @@ import uuid
 from pika import BasicProperties
 import logging
 
-from software.communication.rabbitmq import RabbitMQ
-from software.communication.rpc_server import METHOD_ATTRIBUTE, ARGS_ATTRIBUTE
-from software.communication.protocol import decode_json
+from communication.rabbitmq import RabbitMQ
+from communication.rpc_server import METHOD_ATTRIBUTE, ARGS_ATTRIBUTE
+from communication.protocol import decode_json
 
 
 class RPCClient(RabbitMQ):
