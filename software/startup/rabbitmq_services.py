@@ -1,7 +1,7 @@
 import requests
 
 from software.config import resource_file_path
-from utils.docker_service_util import kill_container, start
+from software.utils.docker_service_util import kill_container, start
 
 container_name = "rabbitmq-server"
 
