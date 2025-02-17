@@ -1,8 +1,6 @@
 import inspect
-
 import pika
 import logging
-
 from communication.rabbitmq import RabbitMQ
 from communication.protocol import decode_json, encode_json
 

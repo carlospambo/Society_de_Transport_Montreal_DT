@@ -6,19 +6,21 @@ import protocol as proto
 
 
 class RabbitMQ:
-    def __init__(self, ip, port, username, password, vhost, exchange_name, exchange_type, ssl = None):
+    def __init__(self, ip, port, username, password, host, exchange_name, exchange_type, ssl = None):
         self._logger = logging.getLogger("RabbitMQClass")
-        self.vhost = vhost
+        self.ip = ip
+        self.port = port
+        self.host = host
         self.exchange_name = exchange_name
         self.exchange_type = exchange_type
-        credentials = PlainCredentials(username, password)
+        self.credentials = PlainCredentials(username, password)
 
         if ssl is None:
-            self.parameters = ConnectionParameters(ip, port, vhost, credentials)
+            self.parameters = ConnectionParameters(self.ip, self.port, self.host, self.credentials)
         else:
             ssl_context = ssl_.SSLContext(getattr(ssl_, ssl["protocol"]))
             ssl_context.set_ciphers(ssl["ciphers"])
-            self.parameters = ConnectionParameters(ip, port, vhost, credentials, ssl_options=SSLOptions(context=ssl_context))
+            self.parameters = ConnectionParameters(self.ip, self.port, self.host, self.credentials, ssl_options=SSLOptions(context=ssl_context))
         self.connection = None
         self.channel = None
         self.queue_name = []
@@ -88,8 +90,10 @@ class RabbitMQ:
     def close(self):
         self._logger.debug("Deleting created queues by Rabbitmq class")
         self.queues_delete()
+
         self._logger.debug("Closing channel in rabbitmq")
         self.channel.close()
+
         self._logger.debug("Closing connection in rabbitmq")
         self.connection.close()
 
@@ -98,8 +102,7 @@ class RabbitMQ:
 
         # Register an intermediate function to decode the msg.
         def decode_msg(ch, method, properties, body):
-            body_json = proto.decode_json(body)
-            on_message_callback(ch, method, properties, body_json)
+            on_message_callback(ch, method, properties, proto.decode_json(body))
 
         self.channel.basic_consume(
             queue=created_queue_name,

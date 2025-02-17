@@ -12,3 +12,8 @@ sympy
 argparse
 google
 pymongo
+flask-restful
+flask
+protobuf
+protobuf3-to-dict
+gtfs-realtime-bindings
