@@ -1,6 +1,11 @@
 import json
+import os
 
+STM_API_URL = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions"
+STM_API_HEADER = {'apiKey': os.environ["STM_API_KEY"], 'Accept': 'application/x-protobuf'}
 ENCODING = "ascii"
+ROUTING_KEY_BUS_ROUTE = "stm.record.bus.route"
+
 
 def convert_str_to_bool(body):
     if body is None:
@@ -9,12 +14,12 @@ def convert_str_to_bool(body):
         return body.decode(ENCODING) == "True"
 
 
-def encode_json(object):
-    return json.dumps(object).encode(ENCODING)
+def encode_json(object_):
+    return json.dumps(object_).encode(ENCODING)
 
 
-def decode_json(bytes):
-    return json.loads(bytes.decode(ENCODING))
+def decode_json(bytes_):
+    return json.loads(bytes_.decode(ENCODING))
 
 
 def from_ns_to_s(time_ns):
