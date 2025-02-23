@@ -1,7 +1,10 @@
 
-from startup.rabbitmq_services import stop_rabbitmq
-from startup.mongodb_services  import stop_mongodb
+from startup.rabbitmq_service import RabbitMQService
+from startup.mongodb_service  import MongoDBService
 
 if __name__ == '__main__':
-    stop_mongodb()
-    stop_rabbitmq()
+    rabbitmq = RabbitMQService()
+    rabbitmq.stop()
+
+    mongodb = MongoDBService()
+    mongodb.stop()
