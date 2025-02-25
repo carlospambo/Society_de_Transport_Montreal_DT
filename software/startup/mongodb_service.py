@@ -7,7 +7,7 @@ class MongoDBService(DockerService):
 
     def __init__(self, container_name: str = "mongodb", log_file_name: str=None, directory_path=None, verbose: bool = True):
         super().__init__(container_name, logging.getLogger("MongoService"), verbose)
-        self._log_file_name = "logs/mongodb.log" if not log_file_name else log_file_name
+        self._log_file_name = "./logs/mongodb.log" if not log_file_name else log_file_name
         self._docker_compose_directory_path = resource_file_path("config/installation/mongodb") if not directory_path else directory_path
 
     def _test_connection_function(self) -> bool:

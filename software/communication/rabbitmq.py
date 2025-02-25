@@ -5,6 +5,7 @@ import logging
 import ssl as ssl_
 
 class RabbitMQ:
+
     def __init__(self, ip, port, username, password, vhost, exchange_name, exchange_type, ssl = None):
         self._logger = logging.getLogger("RabbitMQClass")
         self.ip = ip

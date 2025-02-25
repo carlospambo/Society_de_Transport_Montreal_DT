@@ -8,7 +8,7 @@ class RabbitMQService(DockerService):
 
     def __init__(self, container_name:str = "rabbitmq", log_file_name = None, verbose:bool = True):
         super().__init__(container_name, logging.getLogger('RabbitMQService'), verbose)
-        self._log_file_name = "logs/rabbitmq.log" if not log_file_name else log_file_name
+        self._log_file_name = "./logs/rabbitmq.log" if not log_file_name else log_file_name
         self._docker_compose_directory_path = resource_file_path("config/installation/rabbitmq")
 
 
