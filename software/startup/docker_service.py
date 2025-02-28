@@ -36,7 +36,7 @@ class DockerService:
             client.close()
 
 
-    def start_container(self, log_file_path, docker_compose_directory_path, test_connection_function, sleep_time, max_attempts):
+    def start_container(self, log_file_path, docker_compose_directory_path, test_connection_function=None, sleep_time:int=1, max_attempts:int=10):
         self._l.info(f"Log will be stored in: {os.path.abspath(log_file_path)}")
 
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -54,12 +54,16 @@ class DockerService:
             attempts = max_attempts
 
             while service_ready is False and attempts > 0:
-                r = test_connection_function()
-                if r is True:
+                if test_connection_function is not None:
+                    r = test_connection_function()
+                    if r is True:
+                        self._l.info("Service is ready")
+                        service_ready = True
+                    else:
+                        attempts -= 1
+                        self._l.info("Service is not ready yet. Attempts remaining:" + str(attempts))
+                        if attempts > 0:
+                            time.sleep(sleep_time)
+                else:
                     self._l.info("Service is ready")
                     service_ready = True
-                else:
-                    attempts -= 1
-                    self._l.info("Service is not ready yet. Attempts remaining:" + str(attempts))
-                    if attempts > 0:
-                        time.sleep(sleep_time)

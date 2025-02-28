@@ -21,8 +21,7 @@ def start_api() -> None:
 
 
 if __name__ == '__main__':
-    config_logger("logging.conf")
+    config_logger("config/logging.conf")
     logger = logging.getLogger("RestAPI")
-    config = load_config("startup.conf")
     route_service = RouteService(STM_API_URL, STM_API_HEADER)
     start_api()

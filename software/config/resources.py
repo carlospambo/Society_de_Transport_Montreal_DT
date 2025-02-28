@@ -2,7 +2,7 @@ import os
 import logging.config
 from pyhocon import ConfigFactory
 
-def resource_file_path(filename):
+def resource_file_path(f):
     python_path = os.environ.get("PYTHONPATH")
     if python_path is None:
         directories = ['.']
@@ -10,14 +10,15 @@ def resource_file_path(filename):
         directories = python_path.split(os.pathsep) + ['.']
 
     for d in directories:
-        filepath = os.path.join(d, filename)
+        filepath = os.path.join(d, f)
         if os.path.exists(filepath):
             return filepath
 
-    print(f"File not found: {filename}")
+    print(f"File not found: {f}")
     print("Tried the following directories:")
     print(directories)
-    raise ValueError(f"File not found: {filename}")
+
+    raise ValueError(f"File not found: {f}")
 
 
 def load_config(config_file_name) -> dict:

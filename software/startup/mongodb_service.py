@@ -10,12 +10,10 @@ class MongoDBService(DockerService):
         self._log_file_name = "./logs/mongodb.log" if not log_file_name else log_file_name
         self._docker_compose_directory_path = resource_file_path("config/installation/mongodb") if not directory_path else directory_path
 
-    def _test_connection_function(self) -> bool:
-        return True
 
     def start(self):
         self.kill_container()
-        self.start_container(self._log_file_name, self._docker_compose_directory_path, self._test_connection_function, 1, 10)
+        self.start_container(self._log_file_name, self._docker_compose_directory_path)
 
     def stop(self):
         self.kill_container()
