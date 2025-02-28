@@ -15,10 +15,11 @@ if __name__ == '__main__':
     mongodb = MongoDBService()
     mongodb.start()
 
-    # # API
-    # start_api()
+    # HTTP RESTful API
+    # start_http_api()
+
     route_ids = []
-    if sys.argv[1]:
+    if sys.argv[1]: # extract parameters values
         route_ids = int_list = [int(i) for i in sys.argv[1].split(',')]
 
     # STM API Service

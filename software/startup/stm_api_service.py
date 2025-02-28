@@ -12,31 +12,7 @@ from protobuf_to_dict import protobuf_to_dict
 
 config_logger("config/logging.conf")
 
-CTRL_EXEC_INTERVAL = 18.0
-
-def flatten_response(data:list[dict]) -> list[dict]:
-    flatten_data = []
-    for entity in data:
-        # flatten_d = {"vehicle.id": entity["id"]}
-        # if 'vehicle' in entity:
-        #     flatten_d["vehicle.current_stop_sequence"] = entity['vehicle']['current_stop_sequence'] if 'current_stop_sequence' in entity['vehicle'] else None
-        #     flatten_d["vehicle.current_status"] = entity['vehicle']['current_status'] if 'current_status' in entity['vehicle'] else None
-        #     flatten_d["vehicle.occupancy_status"] = entity['vehicle']['occupancy_status'] if 'occupancy_status' in entity['vehicle'] else None
-        #     flatten_d["timestamp"] = entity['vehicle']['timestamp'] if 'timestamp' in entity['vehicle'] else None
-        #
-        #     if 'trip' in entity['vehicle']:
-        #         flatten_d["vehicle.trip.trip_id"] = entity['vehicle']['trip']['trip_id'] if 'trip_id' in entity['vehicle']['trip'] else None
-        #         flatten_d["vehicle.trip.start_time"] = entity['vehicle']['trip']['start_time'] if 'start_time' in entity['vehicle']['trip'] else None
-        #         flatten_d["vehicle.trip.start_date"] = entity['vehicle']['trip']['start_date'] if 'start_date' in entity['vehicle']['trip'] else None
-        #
-        #     if 'position' in entity['vehicle']:
-        #         flatten_d["vehicle.position.latitude"] = entity['vehicle']['position']['latitude'] if 'latitude' in entity['vehicle']['position'] else None
-        #         flatten_d["vehicle.position.longitude"] = entity['vehicle']['position']['longitude'] if 'longitude' in entity['vehicle']['position'] else None
-        #         flatten_d["vehicle.position.bearing"] = entity['vehicle']['position']['bearing'] if 'bearing' in entity['vehicle']['position'] else None
-        #         flatten_d["vehicle.position.speed"] = entity['vehicle']['position']['speed'] if 'speed' in entity['vehicle']['position'] else None
-        flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
-
-    return flatten_data
+CTRL_EXEC_INTERVAL = 15.0
 
 class StmApiService:
 
@@ -68,6 +44,12 @@ class StmApiService:
         self._logger.info("RabbitMQ connection cleaning up.")
         self.rabbitmq.close()
 
+    def _flatten_response(self, data:list[dict]) -> list[dict]:
+        flatten_data = []
+        for entity in data:
+            flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
+        return flatten_data
+
 
     def _fetch_bus_route_data(self):
         feed = FeedMessage()
@@ -79,6 +61,7 @@ class StmApiService:
     def _extract_timestamp(self, _data:dict) -> int:
         try:
             return int(_data['vehicle']['timestamp'])
+
         except KeyError as e:
             self._logger.error(f"Error at extracting timestamp: {str(e)}")
             return 0
@@ -104,8 +87,7 @@ class StmApiService:
             data.sort(key=self._extract_timestamp, reverse=True)
 
         if flatten:
-            data = flatten_response(data)
-            # processing_pool.apply_async(flatten_response, data).get(timeout=15)
+            data = self._flatten_response(data)
 
         return data
 
