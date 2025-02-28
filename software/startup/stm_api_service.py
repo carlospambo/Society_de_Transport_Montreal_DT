@@ -138,11 +138,11 @@ class StmApiService:
         return self._process_response(self._fetch_bus_route_data(), route_ids)
 
 
-    def _fetch_and_update_route(self, exec_interval=CTRL_EXEC_INTERVAL, strict_interval=False) -> None:
+    def _fetch_and_update_route(self, route_ids:list[int]=None, exec_interval=CTRL_EXEC_INTERVAL, strict_interval=False) -> None:
         try:
             while True:
                 start = time.time()
-                data = self._process_response(self._fetch_bus_route_data())
+                data = self._process_response(self._fetch_bus_route_data(), route_ids)
                 self.send_message(data, start)
                 self.store_records(data)
 
@@ -156,16 +156,18 @@ class StmApiService:
                         raise ValueError(exec_interval)
                 else:
                     time.sleep(exec_interval - elapsed)
+
+                self._logger.info("Wait for next execution cycle ...")
         except:
             self._cleanup()
             raise
 
 
-    def start(self):
+    def start(self, route_ids:list[int]=None):
         self._setup()
         while True:
             try:
-                self._fetch_and_update_route()
+                self._fetch_and_update_route(route_ids=route_ids)
             except KeyboardInterrupt:
                 exit(0)
 

@@ -22,6 +22,11 @@ pip install -r requirements.txt
 python -m startup.start_all_services
 ```
 
+- or, add the parameter after the module script to the command to run the services for a select number of bus routes, i.e: for buses `121, 41, and 45` only:
+```
+python -m startup.start_all_services "121, 41, 45"
+```
+
 ## Authors
 
 - [Vanny Katabarwa](mailto:vanny-nicole.kayirangwa-katabarwa@polymtl.ca?subject[Github]%LOG6953FE-STM-Digital%Twin)
