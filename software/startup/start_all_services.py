@@ -1,8 +1,8 @@
 
 from startup.rabbitmq_service import RabbitMQService
 from startup.mongodb_service  import MongoDBService
-from startup.rest_api import start_api
-from startup.route_service import start_route_service_update
+from startup.http_rest_api import start_http_api
+from startup.stm_api_service import StmApiService
 
 
 if __name__ == '__main__':
@@ -17,5 +17,6 @@ if __name__ == '__main__':
     # # API
     # start_api()
 
-    # Routing Service
-    start_route_service_update()
+    # STM API Service
+    service = StmApiService()
+    service.start()

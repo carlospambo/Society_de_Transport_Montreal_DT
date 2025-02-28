@@ -18,3 +18,4 @@ protobuf
 protobuf3-to-dict
 gtfs-realtime-bindings
 apscheduler
+multiprocessing

@@ -33,7 +33,7 @@ class MongoDB:
             self._collection_exists()
             self._collection = self._database[self._col_name]
 
-        except (ConnectionFailure, MongoDbResourceDoesNotExist) as e:
+        except ConnectionFailure as e:
             error_msg = f"Unable to connect to {self._connection_str}/{self._db_name}/{self._col_name}, error: {str(e)}"
             self._logger.error(error_msg)
             raise ConnectionFailure(error_msg)
@@ -44,22 +44,21 @@ class MongoDB:
             self._database = self._client[self._db_name]
             self._logger.info(f"{self._db_name} database exists.")
         else:
-            err_msg = f"{self._db_name} database does not exists."
-            self._logger.error(err_msg)
-            raise MongoDbResourceDoesNotExist(err_msg)
+            self._database = self._client[self._db_name]
+            self._logger.error(f"{self._db_name} database did not exist.")
 
 
     def _collection_exists(self):
         if self._database is None:
             self._database = self._client[self._db_name]
-        try:
-            self._database.validate_collection(self._col_name)
-            self._logger.info(f"{self._col_name} collection exists in database {self._db_name}.")
 
-        except OperationFailure as e:
-            err_msg = f"{self._col_name} collection does not exists in database {self._db_name}. Error: {str(e)}"
-            self._logger.error(err_msg)
-            raise MongoDbResourceDoesNotExist(err_msg, e)
+        if self._col_name in self._database.list_collection_names():
+            self._logger.info(f"{self._col_name} collection exists in database {self._db_name}.")
+            self._collection = self._database[self._col_name]
+        else:
+            self._logger.error(f"{self._col_name} collection did not exist in database {self._db_name}.")
+            self._logger.info(f"Creating collection {self._col_name} in database {self._db_name}.")
+            self._collection = self._database[self._col_name]
 
 
     def save(self, data: list[dict]):
@@ -72,15 +71,3 @@ class MongoDB:
             return results
         except BulkWriteError as e:
             self._logger.error(f"Error: {str(e)}")
-
-
-class MongoDbResourceDoesNotExist(Exception):
-    """Exception raised for non-existing MongoDb resources."""
-
-    def __init__(self, message, e=None):
-        super().__init__(message, e)
-        self.message = message
-
-
-    def __str__(self):
-        return self.message

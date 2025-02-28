@@ -10,7 +10,7 @@ from communication.protocol import ROUTING_KEY_BUS_ROUTE, STM_API_URL, STM_API_H
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
-
+config_logger("config/logging.conf")
 
 CTRL_EXEC_INTERVAL = 18.0
 
@@ -38,7 +38,7 @@ def flatten_response(data:list[dict]) -> list[dict]:
 
     return flatten_data
 
-class RouteService:
+class StmApiService:
 
     def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str = None, headers:dict = None):
         self._logger = logging.getLogger("RouteService")
@@ -53,18 +53,18 @@ class RouteService:
 
         self.rabbitmq = RabbitMQ(**rabbitmq_config)
         self.mongodb = MongoDB(**mongodb_config)
-        self.url = url
-        self.headers = {} if not headers else headers
+        self.url = STM_API_URL if not url else url
+        self.headers = STM_API_HEADER if not headers else headers
         self.bus_route_queue_name = ""
 
 
-    def setup(self):
+    def _setup(self):
         self.rabbitmq.connect_to_server()
         self._logger.info("RabbitMQ connected.")
         self.bus_route_queue_name = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE)
 
 
-    def cleanup(self):
+    def _cleanup(self):
         self._logger.info("RabbitMQ connection cleaning up.")
         self.rabbitmq.close()
 
@@ -105,6 +105,7 @@ class RouteService:
 
         if flatten:
             data = flatten_response(data)
+            # processing_pool.apply_async(flatten_response, data).get(timeout=15)
 
         return data
 
@@ -137,8 +138,7 @@ class RouteService:
         return self._process_response(self._fetch_bus_route_data(), route_ids)
 
 
-    def fetch_and_update_route(self, exec_interval=CTRL_EXEC_INTERVAL, strict_interval=False) -> None:
-
+    def _fetch_and_update_route(self, exec_interval=CTRL_EXEC_INTERVAL, strict_interval=False) -> None:
         try:
             while True:
                 start = time.time()
@@ -157,26 +157,24 @@ class RouteService:
                 else:
                     time.sleep(exec_interval - elapsed)
         except:
-            self.cleanup()
+            self._cleanup()
             raise
 
 
-def start_route_service_update():
-    config_logger("config/logging.conf")
-    logger = logging.getLogger("RouteService")
+    def start(self):
+        self._setup()
+        while True:
+            try:
+                self._fetch_and_update_route()
+            except KeyboardInterrupt:
+                exit(0)
 
-    service = RouteService(url=STM_API_URL, headers=STM_API_HEADER)
-    service.setup()
-    while True:
-        try:
-            service.fetch_and_update_route()
-        except KeyboardInterrupt:
-            exit(0)
-        except Exception as exc:
-            logger.error("The following exception occurred. Attempting to reconnect.")
-            logger.error(exc)
-            time.sleep(1.0)
+            except Exception as exc:
+                self._logger.error("The following exception occurred. Attempting to reconnect.")
+                self._logger.error(exc)
+                time.sleep(1.0)
 
 
 if __name__ == '__main__':
-    start_route_service_update()
+    service = StmApiService()
+    service.start()
