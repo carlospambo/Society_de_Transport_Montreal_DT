@@ -44,12 +44,6 @@ class StmApiService:
         self._logger.info("RabbitMQ connection cleaning up.")
         self.rabbitmq.close()
 
-    def _flatten_response(self, data:list[dict]) -> list[dict]:
-        flatten_data = []
-        for entity in data:
-            flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
-        return flatten_data
-
 
     def _fetch_bus_route_data(self):
         feed = FeedMessage()
@@ -66,6 +60,7 @@ class StmApiService:
             self._logger.error(f"Error at extracting timestamp: {str(e)}")
             return 0
 
+
     def _process_response(self, feed, route_ids:list[int]=None, sort:bool=True, flatten:bool=True) -> list[dict]:
         data = []
         feed_dict = protobuf_to_dict(feed) # convert to dictionary from the original protobuf feed
@@ -73,7 +68,7 @@ class StmApiService:
         if not route_ids:
             route_ids = []
 
-        self._logger.info(f"Process response for bus routes: {route_ids}")
+        self._logger.info(f"Processing response for bus routes: {route_ids}")
 
         for entity in feed_dict['entity']:
             if 'vehicle' in entity and 'trip' in entity['vehicle'] and 'route_id' in entity['vehicle']['trip']:
@@ -139,7 +134,7 @@ class StmApiService:
                 else:
                     time.sleep(exec_interval - elapsed)
 
-                self._logger.info("Wait for next execution cycle ...")
+                self._logger.info("Waiting for next execution cycle ...")
         except:
             self._cleanup()
             raise
@@ -157,6 +152,14 @@ class StmApiService:
                 self._logger.error("The following exception occurred. Attempting to reconnect.")
                 self._logger.error(exc)
                 time.sleep(1.0)
+
+
+    @staticmethod
+    def _flatten_response(data:list[dict]) -> list[dict]:
+        flatten_data = []
+        for entity in data:
+            flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
+        return flatten_data
 
 
 if __name__ == '__main__':

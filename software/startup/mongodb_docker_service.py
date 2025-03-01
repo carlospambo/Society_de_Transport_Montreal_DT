@@ -3,7 +3,7 @@ from config.resources import resource_file_path
 from startup.docker_service import DockerService
 
 
-class MongoDBService(DockerService):
+class MongoDbDockerService(DockerService):
 
     def __init__(self, container_name: str = "mongodb", log_file_name: str=None, directory_path=None, verbose: bool = True):
         super().__init__(container_name, logging.getLogger("MongoService"), verbose)
@@ -15,10 +15,11 @@ class MongoDBService(DockerService):
         self.kill_container()
         self.start_container(self._log_file_name, self._docker_compose_directory_path)
 
+
     def stop(self):
         self.kill_container()
 
 
 if __name__ == '__main__':
-    mongodb = MongoDBService()
-    mongodb.start()
+    service = MongoDbDockerService()
+    service.start()

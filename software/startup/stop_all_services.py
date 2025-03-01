@@ -1,10 +1,11 @@
 
-from startup.rabbitmq_service import RabbitMQService
-from startup.mongodb_service  import MongoDBService
+from startup.rabbitmq_service import RabbitMqDockerService
+from startup.mongodb_service  import MongoDbDockerService
+
 
 if __name__ == '__main__':
-    rabbitmq = RabbitMQService()
+    rabbitmq = RabbitMqDockerService()
     rabbitmq.stop()
 
-    mongodb = MongoDBService()
+    mongodb = MongoDbDockerService()
     mongodb.stop()

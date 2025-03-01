@@ -1,18 +1,18 @@
 
 import sys
-from startup.rabbitmq_service import RabbitMQService
-from startup.mongodb_service  import MongoDBService
+from startup.rabbitmq_docker_service import RabbitMqDockerService
+from startup.mongodb_docker_service  import MongoDbDockerService
 from startup.http_rest_api import start_http_api
 from startup.stm_api_service import StmApiService
 
 
 if __name__ == '__main__':
     # RabbitMQ
-    rabbitmq = RabbitMQService()
+    rabbitmq = RabbitMqDockerService()
     rabbitmq.start()
 
     # MongoDB
-    mongodb = MongoDBService()
+    mongodb = MongoDbDockerService()
     mongodb.start()
 
     # HTTP RESTful API
@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     route_ids = []
     if sys.argv[1]: # extract parameters values
-        route_ids = int_list = [int(i) for i in sys.argv[1].split(',')]
+        route_ids = list(set(int(i) for i in sys.argv[1].split(',')))
 
     # STM API Service
     service = StmApiService()

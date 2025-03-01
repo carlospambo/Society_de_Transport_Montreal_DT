@@ -4,7 +4,7 @@ from config.resources import resource_file_path
 from startup.docker_service import DockerService
 
 
-class RabbitMQService(DockerService):
+class RabbitMqDockerService(DockerService):
 
     def __init__(self, container_name:str = "rabbitmq", log_file_name = None, verbose:bool = True):
         super().__init__(container_name, logging.getLogger('RabbitMQService'), verbose)
@@ -34,5 +34,5 @@ class RabbitMQService(DockerService):
 
 
 if __name__ == '__main__':
-    rabbitmq = RabbitMQService()
-    rabbitmq.start()
+    service = RabbitMqDockerService()
+    service.start()

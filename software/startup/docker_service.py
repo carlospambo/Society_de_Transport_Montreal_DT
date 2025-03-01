@@ -65,5 +65,6 @@ class DockerService:
                         if attempts > 0:
                             time.sleep(sleep_time)
                 else:
+                    self._l.debug("Empty test_connection_function provided")
                     self._l.info("Service is ready")
                     service_ready = True

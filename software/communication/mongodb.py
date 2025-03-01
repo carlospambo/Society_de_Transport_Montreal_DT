@@ -1,5 +1,5 @@
 from pymongo.errors import BulkWriteError, ConnectionFailure, OperationFailure
-from pymongo import MongoClient, InsertOne
+from pymongo import MongoClient
 import logging
 
 
@@ -62,12 +62,12 @@ class MongoDB:
 
 
     def save(self, data: list[dict]):
-        self._logger.debug("Start save to db ... ")
         try:
-            results = self._collection.insert_many(data)
-            self._logger.debug(f"Bulk write operation results: {results}")
-            self._logger.debug("End save to db ... ")
-            return results
+            self._logger.debug("Starting writing to db ... ")
 
+            results = self._collection.insert_many(data)
+
+            self._logger.debug("Ending writing to db ... ")
+            return results
         except BulkWriteError as e:
             self._logger.error(f"Error: {str(e)}")
