@@ -27,6 +27,35 @@ python -m startup.start_all_services
 python -m startup.start_all_services "140, 121, 45, 41"
 ```
 
+## STM API OAuth
+
+The Digital Twin requires an API key for the [STM API](https://portail.developpeurs.stm.info/apihub/#/login). After sign up and getting an account ready,
+[create an application](https://portail.developpeurs.stm.info/apihub/#/applications/create) within the API portal to get access to an API Key.
+
+- For `Mac/Linux`:
+1. Run the command in your terminal, replacing `APIKey` with your API key:
+```
+echo "export STM_API_KEY='APIKey'" >> ~/.zshrc
+```
+2. Update the shell with the new variable by running the command:
+```
+source ~/.zshrc
+```
+3. Confirm that you have set your environment variable by running the following command and checking the output:
+```
+echo $STM_API_KEY
+```
+
+- For `Windows`:
+1. Run the command in your terminal, replacing `APIKey` with your API key:
+```
+export STM_API_KEY=APIKey
+```
+
+## STM API Data
+- The STM API uses the [GTFS](https://gtfs.org/) protocol for data exchange. 
+- The data dictionary for the API can be found [here](https://developers.google.com/transit/gtfs-realtime/reference?hl=en)
+
 ## Authors
 
 - [Vanny Katabarwa](mailto:vanny-nicole.kayirangwa-katabarwa@polymtl.ca?subject[Github]%LOG6953FE-STM-Digital%Twin)

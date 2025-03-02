@@ -8,8 +8,8 @@ from startup.stm_api_service import StmApiService
 
 if __name__ == '__main__':
     # RabbitMQ
-    rabbitmq = RabbitMqDockerService()
-    rabbitmq.start()
+    # rabbitmq = RabbitMqDockerService()
+    # rabbitmq.start()
 
     # MongoDB
     mongodb = MongoDbDockerService()

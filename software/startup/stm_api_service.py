@@ -19,30 +19,30 @@ class StmApiService:
     def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str = None, headers:dict = None):
         self._logger = logging.getLogger("RouteService")
         default_config = load_config("config/startup.conf")
-        if rabbitmq_config is None:
-            self._logger.error("RabbitMQ config value is empty, reverting to default configs.")
-            rabbitmq_config = default_config['rabbitmq']
+        # if rabbitmq_config is None:
+        #     self._logger.error("RabbitMQ config value is empty, reverting to default configs.")
+        #     rabbitmq_config = default_config['rabbitmq']
 
         if mongodb_config is None:
             self._logger.error("MongoDB config value is empty, reverting to default configs.")
             mongodb_config = default_config["mongodb"]
 
-        self.rabbitmq = RabbitMQ(**rabbitmq_config)
+        # self.rabbitmq = RabbitMQ(**rabbitmq_config)
         self.mongodb = MongoDB(**mongodb_config)
         self.url = STM_API_URL if not url else url
         self.headers = STM_API_HEADER if not headers else headers
         self.bus_route_queue_name = ""
 
 
-    def _setup(self):
-        self.rabbitmq.connect_to_server()
-        self._logger.info("RabbitMQ connected.")
-        self.bus_route_queue_name = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE)
+    # def _setup(self):
+    #     self.rabbitmq.connect_to_server()
+    #     self._logger.info("RabbitMQ connected.")
+    #     self.bus_route_queue_name = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE)
 
 
-    def _cleanup(self):
-        self._logger.info("RabbitMQ connection cleaning up.")
-        self.rabbitmq.close()
+    # def _cleanup(self):
+    #     self._logger.info("RabbitMQ connection cleaning up.")
+    #     self.rabbitmq.close()
 
 
     def _fetch_bus_route_data(self):
@@ -84,6 +84,8 @@ class StmApiService:
         if flatten:
             data = self._flatten_response(data)
 
+        self._logger.info("Finished processing response.")
+
         return data
 
     def send_message(self, _data: list[dict], start_time: float):
@@ -97,15 +99,16 @@ class StmApiService:
             "data": json.dumps(_data)
         }
 
-        self.rabbitmq.send_message(ROUTING_KEY_BUS_ROUTE, message)
+        # self.rabbitmq.send_message(ROUTING_KEY_BUS_ROUTE, message)
         self._logger.debug(f"Message sent to {ROUTING_KEY_BUS_ROUTE}.")
         self._logger.debug(message)
         self._logger.debug(f"Elapsed after message sent: {time.time() - start_time}s")
 
 
     def store_records(self, _data: list[dict]):
+        self._logger.info("Start writing to db")
         self.mongodb.save(_data)
-
+        self._logger.info("Finished writing to db.")
 
     def fetch_by_route_id(self, route_id: int) -> list[dict]:
         return self._process_response(self._fetch_bus_route_data(), [route_id])
@@ -120,9 +123,10 @@ class StmApiService:
             while True:
                 start = time.time()
                 data = self._process_response(self._fetch_bus_route_data(), route_ids)
-                self.send_message(data, start)
+                # self.send_message(data, start)
                 self.store_records(data)
 
+                self._logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
 
                 if elapsed > exec_interval:
@@ -134,14 +138,13 @@ class StmApiService:
                 else:
                     time.sleep(exec_interval - elapsed)
 
-                self._logger.info("Waiting for next execution cycle ...")
         except:
-            self._cleanup()
+            # self._cleanup()
             raise
 
 
     def start(self, route_ids:list[int]=None):
-        self._setup()
+        # self._setup()
         while True:
             try:
                 self._fetch_and_update_route(route_ids=route_ids)
