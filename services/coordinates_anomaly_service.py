@@ -34,12 +34,12 @@ class CoordinatesAnomalyService(RPCServer):
         self._l = logging.getLogger("CoordinatesAnomalyService")
 
 
-    def setup(self):
+    def setup(self) -> None:
         super(CoordinatesAnomalyService, self).setup(routing_key='coordinates.anomaly.service', queue_name='coordinates.anomaly.service')
         self._l.info(f"CoordinatesAnomalyService setup complete.")
 
 
-    def validate_coordinates(self, data:dict, callback_func):
+    def validate_coordinates(self, data:dict, callback_func) -> None:
         """
         This is the method that will be invoked by the RPCServer class when a message arrives in the RabbitMQ queue.
         The 'callback_func' is a function that we can call to send the results back to the client that sent the message.
