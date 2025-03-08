@@ -45,7 +45,7 @@ class MongoDB:
             self._logger.info(f"{self._db_name} database exists.")
         else:
             self._database = self._client[self._db_name]
-            self._logger.error(f"{self._db_name} database did not exist.")
+            self._logger.error(f"ec{self._db_name} database did not exist.")
 
 
     def _collection_exists(self):

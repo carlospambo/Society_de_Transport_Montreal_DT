@@ -2,10 +2,10 @@ import json
 import os
 
 STM_API_URL = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions"
-# STM_API_HEADER = {'apiKey': os.environ["STM_API_KEY"], 'Accept': 'application/x-protobuf'}
-STM_API_HEADER = {'apiKey': "l7079a29ea698640cbbb965bc4011b80e4", 'Accept': 'application/x-protobuf'}
+STM_API_HEADER = {'apiKey': os.environ["STM_API_KEY"], 'Accept': 'application/x-protobuf'}
 ENCODING = "ascii"
-ROUTING_KEY_BUS_ROUTE = "stm.record.bus.route"
+ROUTING_KEY_BUS_ROUTE = "bus.routes"
+ROUTING_KEY_COORDINATES_ANOMALY_SERVICE = "coordinates.anomaly.service"
 
 
 def convert_str_to_bool(body):
