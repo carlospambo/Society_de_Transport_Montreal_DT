@@ -31,12 +31,12 @@ class CoordinatesAnomalyService(RPCServer):
     """
     def __init__(self, rabbitmq_config):
         super().__init__(**rabbitmq_config)
-        self._l = logging.getLogger("CoordinatesAnomalyService")
+        self._logger = logging.getLogger("CoordinatesAnomalyService")
 
 
     def setup(self) -> None:
         super(CoordinatesAnomalyService, self).setup(routing_key='coordinates.anomaly.service', queue_name='coordinates.anomaly.service')
-        self._l.info(f"CoordinatesAnomalyService setup complete.")
+        self._logger.info("CoordinatesAnomalyService setup complete.")
 
 
     def validate_coordinates(self, data:dict, callback_func) -> None:
@@ -44,12 +44,12 @@ class CoordinatesAnomalyService(RPCServer):
         This is the method that will be invoked by the RPCServer class when a message arrives in the RabbitMQ queue.
         The 'callback_func' is a function that we can call to send the results back to the client that sent the message.
         """
-        self._l.info(f"validate_coordinates called. Received values: {data}")
+        self._logger.info(f"validate_coordinates called. Received values: {data}")
 
         if data:
             message = {"results": 'ok'}
         else:
-            self._l.warning("Received an empty dictionary. Cannot validate coordinates. Returning error")
+            self._logger.warning("Received an empty dictionary. Cannot validate coordinates. Returning error")
             message = {"error": "Received an empty dictionary of values. Cannot validate coordinates."}
 
         # send results back
