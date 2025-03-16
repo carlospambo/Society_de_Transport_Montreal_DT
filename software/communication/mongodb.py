@@ -1,4 +1,4 @@
-from pymongo.errors import BulkWriteError, ConnectionFailure, OperationFailure
+from pymongo.errors import BulkWriteError, ConnectionFailure
 from pymongo import MongoClient
 import logging
 
@@ -68,6 +68,19 @@ class MongoDB:
             results = self._collection.insert_many(data)
 
             self._logger.debug("Ending writing to db ... ")
+            return results
+        except BulkWriteError as e:
+            self._logger.error(f"Error: {str(e)}")
+
+
+    def find(self, _filter: dict):
+        try:
+            self._logger.debug(f"Start fetch from db for {_filter} ... ")
+
+            results = self._collection.find(_filter)
+
+            self._logger.debug(f"End fetch with results: {results}")
+
             return results
         except BulkWriteError as e:
             self._logger.error(f"Error: {str(e)}")

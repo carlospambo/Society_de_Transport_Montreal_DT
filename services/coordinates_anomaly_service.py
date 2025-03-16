@@ -22,21 +22,39 @@ assert os.path.exists(stm_dt_software_dir), 'stm_dt/software directory not found
 sys.path.append(stm_dt_software_dir)
 
 from communication.rpc_server import RPCServer
+from communication.mongodb import MongoDB
 from config.config import load_config, config_logger
+from enum import Enum
+
+class BusStopOrder(Enum):
+    STOP_SEQUENCE = 'SEQUENCE'
+    STOP_NAME = 'NAME'
 
 
 class CoordinatesAnomalyService(RPCServer):
     """
     This is a server service that validates a list of latitude and longitude coordinates from the buses.
     """
-    def __init__(self, rabbitmq_config):
+    def __init__(self, rabbitmq_config, mongodb_config):
         super().__init__(**rabbitmq_config)
+        self.mongodb = MongoDB(**mongodb_config)
         self._logger = logging.getLogger("CoordinatesAnomalyService")
 
 
     def setup(self) -> None:
         super(CoordinatesAnomalyService, self).setup(routing_key='coordinates.anomaly.service', queue_name='coordinates.anomaly.service')
         self._logger.info("CoordinatesAnomalyService setup complete.")
+
+
+    def get_stops_by_route_id(self, route_id, order_by:BusStopOrder=BusStopOrder.STOP_SEQUENCE):
+        bus_stops = self.mongodb.find({'route_id': route_id})
+
+        if order_by == BusStopOrder.STOP_SEQUENCE:
+            bus_stops.
+        else:
+            bus_stops.
+
+        return bus_stops
 
 
     def validate_coordinates(self, data:dict, callback_func) -> None:
@@ -47,7 +65,9 @@ class CoordinatesAnomalyService(RPCServer):
         self._logger.info(f"validate_coordinates called. Received values: {data}")
 
         if data:
+
             message = {"results": 'ok'}
+
         else:
             self._logger.warning("Received an empty dictionary. Cannot validate coordinates. Returning error")
             message = {"error": "Received an empty dictionary of values. Cannot validate coordinates."}
