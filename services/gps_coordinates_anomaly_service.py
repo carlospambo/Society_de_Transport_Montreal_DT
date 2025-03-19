@@ -31,19 +31,19 @@ class BusStopOrder(Enum):
     STOP_NAME = 'NAME'
 
 
-class CoordinatesAnomalyService(RPCServer):
+class GPSCoordinatesAnomalyService(RPCServer):
     """
     This is a server service that validates a list of latitude and longitude coordinates from the buses.
     """
     def __init__(self, rabbitmq_config, mongodb_config):
         super().__init__(**rabbitmq_config)
         self.mongodb = MongoDB(**mongodb_config)
-        self._logger = logging.getLogger("CoordinatesAnomalyService")
+        self._logger = logging.getLogger("GPSCoordinatesAnomalyService")
 
 
     def setup(self) -> None:
-        super(CoordinatesAnomalyService, self).setup(routing_key='coordinates.anomaly.service', queue_name='coordinates.anomaly.service')
-        self._logger.info("CoordinatesAnomalyService setup complete.")
+        super(GPSCoordinatesAnomalyService, self).setup(routing_key='coordinates.anomaly.service', queue_name='coordinates.anomaly.service')
+        self._logger.info("GPSCoordinatesAnomalyService setup complete.")
 
 
     def get_bus_stops_by_route_id(self, route_id:int, order_by:BusStopOrder):
@@ -51,7 +51,7 @@ class CoordinatesAnomalyService(RPCServer):
         return data
 
 
-    def validate_coordinates(self, data:dict, callback_func) -> None:
+    def validate_gps_coordinates(self, data:dict, callback_func) -> None:
         """
         This is the method that will be invoked by the RPCServer class when a message arrives in the RabbitMQ queue.
         The 'callback_func' is a function that we can call to send the results back to the client that sent the message.
@@ -89,6 +89,6 @@ if __name__ == "__main__":
     configs = load_config(startup_conf_path)
 
     # Start the service
-    service = CoordinatesAnomalyService(rabbitmq_config=configs["rabbitmq"])
+    service = GPSCoordinatesAnomalyService(rabbitmq_config=configs["rabbitmq"])
     service.setup()
     service.start_serving()
