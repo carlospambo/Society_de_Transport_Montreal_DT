@@ -40,6 +40,7 @@ class ApiService:
         self.bus_route_queue_names['DTViz'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE)
         self.bus_route_queue_names['DTCoordAnomalyService'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_COORDINATES_ANOMALY_SERVICE)
 
+
     def _cleanup(self):
         self._logger.info("RabbitMQ connection cleaning up.")
         self.rabbitmq.close()
@@ -50,16 +51,6 @@ class ApiService:
         response = requests.get(self.url, headers=self.headers)
         feed.ParseFromString(response.content)
         return feed
-
-
-    def _extract_timestamp(self, _data:dict) -> int:
-        try:
-            return int(_data['vehicle']['timestamp'])
-
-        except KeyError as e:
-            self._logger.error(f"Error at extracting timestamp: {str(e)}")
-            return 0
-
 
     def _process_response(self, feed, route_ids:list[int]=None, sort:bool=True, flatten:bool=True) -> list[dict]:
         data = []
@@ -88,6 +79,18 @@ class ApiService:
         self._logger.info("Finished processing response.")
 
         return data
+
+
+    @staticmethod
+    def _extract_timestamp(_data:dict) -> int:
+        _logger = logging.getLogger("RouteService")
+        try:
+            return int(_data['vehicle']['timestamp'])
+
+        except KeyError as e:
+            _logger.error(f"Error at extracting timestamp: {str(e)}")
+            return 0
+
 
     def publish_to_queue(self, _data: list[dict], start_time: float):
         timestamp = time.time_ns()

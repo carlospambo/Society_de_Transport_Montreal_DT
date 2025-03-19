@@ -46,15 +46,9 @@ class CoordinatesAnomalyService(RPCServer):
         self._logger.info("CoordinatesAnomalyService setup complete.")
 
 
-    def get_stops_by_route_id(self, route_id, order_by:BusStopOrder=BusStopOrder.STOP_SEQUENCE):
-        bus_stops = self.mongodb.find({'route_id': route_id})
-
-        if order_by == BusStopOrder.STOP_SEQUENCE:
-            bus_stops.
-        else:
-            bus_stops.
-
-        return bus_stops
+    def get_bus_stops_by_route_id(self, route_id:int, order_by:BusStopOrder):
+        data = self.mongodb.find({'route_id': route_id})
+        return data
 
 
     def validate_coordinates(self, data:dict, callback_func) -> None:
