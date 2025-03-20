@@ -6,7 +6,7 @@ import pandas as pd
 from config.config import config_logger, load_config
 from communication.rabbitmq import RabbitMQ
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_BUS_ROUTE, ROUTING_KEY_COORDINATES_ANOMALY_SERVICE, STM_API_URL, STM_API_HEADER
+from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE, STM_API_URL, STM_API_HEADER
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
@@ -37,8 +37,8 @@ class ApiService:
     def _setup(self):
         self.rabbitmq.connect_to_server()
         self._logger.info("RabbitMQ connected.")
-        self.bus_route_queue_names['DTViz'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE)
-        self.bus_route_queue_names['DTCoordAnomalyService'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_COORDINATES_ANOMALY_SERVICE)
+        self.bus_route_queue_names['DTBusRoutesUpdates'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE_UPDATES)
+        # self.bus_route_queue_names['DTGpsCoordinatesAnomalyService'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE)
 
 
     def _cleanup(self):
@@ -51,6 +51,7 @@ class ApiService:
         response = requests.get(self.url, headers=self.headers)
         feed.ParseFromString(response.content)
         return feed
+
 
     def _process_response(self, feed, route_ids:list[int]=None, sort:bool=True, flatten:bool=True) -> list[dict]:
         data = []
@@ -103,7 +104,6 @@ class ApiService:
             "data": json.dumps(_data)
         }
 
-
         # Publish to Queues
         for key in self.bus_route_queue_names:
             self.rabbitmq.send_message(self.bus_route_queue_names[key], message)
@@ -132,7 +132,7 @@ class ApiService:
                 start = time.time()
                 data = self._process_response(self._fetch_bus_route_data(), route_ids)
                 self.publish_to_queue(data, start)
-                self.store_records(data)
+                # self.store_records(data)
 
                 self._logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
