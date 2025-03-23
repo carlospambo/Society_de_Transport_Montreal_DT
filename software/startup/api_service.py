@@ -1,18 +1,16 @@
 import requests
 import logging
-import json
 import time
 import pandas as pd
 from config.config import config_logger, load_config
 from communication.rabbitmq import RabbitMQ
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE, STM_API_URL, STM_API_HEADER
+from communication.protocol import encode_json , ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE, STM_API_URL, STM_API_HEADER, CTRL_EXEC_INTERVAL
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
 config_logger("config/logging.conf")
 
-CTRL_EXEC_INTERVAL = 15.0
 
 class ApiService:
 
@@ -37,8 +35,8 @@ class ApiService:
     def _setup(self):
         self.rabbitmq.connect_to_server()
         self._logger.info("RabbitMQ connected.")
-        self.bus_route_queue_names['DTBusRoutesUpdates'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE_UPDATES)
-        # self.bus_route_queue_names['DTGpsCoordinatesAnomalyService'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE)
+        self.bus_route_queue_names['BusRoutesUpdates'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE_UPDATES)
+        self.bus_route_queue_names['GPSCoordinatesAnomaly'] = self.rabbitmq.declare_local_queue(routing_key=ROUTING_KEY_GPS_COORDINATES_ANOMALY_SERVICE)
 
 
     def _cleanup(self):
@@ -60,7 +58,6 @@ class ApiService:
 
         if not route_ids:
             route_ids = []
-
         self._logger.info(f"Processing response for bus routes: {route_ids}")
 
         for entity in feed_dict['entity']:
@@ -70,7 +67,6 @@ class ApiService:
                 route_id = int(entity['vehicle']['trip']['route_id'])
                 if (not route_ids) or (route_id in route_ids) :
                     data.append(entity)
-
         if sort:
             data.sort(key=self._extract_timestamp, reverse=True)
 
@@ -101,7 +97,7 @@ class ApiService:
             "tags": {
                 "source": "stm_api_bus_update"
             },
-            "data": json.dumps(_data)
+            "data": encode_json(_data)
         }
 
         # Publish to Queues
@@ -113,8 +109,10 @@ class ApiService:
 
 
     def store_records(self, _data: list[dict]):
-        self._logger.info("Start writing to db")
+        self._logger.info("Start writing to db.")
+
         self.mongodb.save(_data)
+
         self._logger.info("Finished writing to db.")
 
 
@@ -132,7 +130,7 @@ class ApiService:
                 start = time.time()
                 data = self._process_response(self._fetch_bus_route_data(), route_ids)
                 self.publish_to_queue(data, start)
-                # self.store_records(data)
+                self.store_records(data)
 
                 self._logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start

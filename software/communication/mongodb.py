@@ -6,81 +6,81 @@ import logging
 class MongoDB:
 
     def __init__(self, database_name:str, collection_name:str, vhost:str=None, port:int=None, username:str=None, password:str=None, connection_str=None):
-        self._logger = logging.getLogger("MongoDb")
+        self.logger = logging.getLogger("MongoDb")
         assert database_name, "Database name is a required field."
         assert collection_name, "Collection name is a required field."
-        self._client = None
-        self._database = None
-        self._collection = None
-        self._db_name = database_name
-        self._col_name = collection_name
+        self.client = None
+        self.database = None
+        self.collection = None
+        self.db_name = database_name
+        self.col_name = collection_name
 
         if not connection_str:
             assert vhost, "Vhost is a required field when a connection string is not provided."
             assert port, "Port number is a required field when a connection string is not provided."
             assert username, "Username is a required field when a connection string is not provided."
             assert password, "Password is a required field when a connection string is not provided."
-            self._connection_str = f"mongodb://{username}:{password}@{vhost}:{port}"
+            self.connection_str = f"mongodb://{username}:{password}@{vhost}:{port}"
         else:
-            self._connection_str = connection_str
-        self._setup()
+            self.connection_str = connection_str
+        self.setup()
 
 
-    def _setup(self):
+    def setup(self):
         try:
-            self._client = MongoClient(self._connection_str)
-            self._db_exists()
-            self._collection_exists()
-            self._collection = self._database[self._col_name]
+            self.client = MongoClient(self.connection_str)
+            self.db_exists()
+            self.collection_exists()
+            self.collection = self.database[self.col_name]
 
         except ConnectionFailure as e:
-            error_msg = f"Unable to connect to {self._connection_str}/{self._db_name}/{self._col_name}, error: {str(e)}"
-            self._logger.error(error_msg)
+            error_msg = f"Unable to connect to {self.connection_str}/{self.db_name}/{self.col_name}, error: {str(e)}"
+            self.logger.error(error_msg)
             raise ConnectionFailure(error_msg)
 
 
-    def _db_exists(self):
-        if self._client and self._db_name in self._client.list_database_names():
-            self._database = self._client[self._db_name]
-            self._logger.info(f"{self._db_name} database exists.")
+    def db_exists(self):
+        if self.client and self.db_name in self.client.list_database_names():
+            self.database = self.client[self.db_name]
+            self.logger.info(f"{self.db_name} database exists.")
         else:
-            self._database = self._client[self._db_name]
-            self._logger.error(f"ec{self._db_name} database did not exist.")
+            self.database = self.client[self.db_name]
+            self.logger.error(f"ec{self.db_name} database did not exist.")
 
 
-    def _collection_exists(self):
-        if self._database is None:
-            self._database = self._client[self._db_name]
+    def collection_exists(self):
+        if self.database is None:
+            self.database = self.client[self.db_name]
 
-        if self._col_name in self._database.list_collection_names():
-            self._logger.info(f"{self._col_name} collection exists in database {self._db_name}.")
-            self._collection = self._database[self._col_name]
+        if self.col_name in self.database.list_collection_names():
+            self.logger.info(f"{self.col_name} collection exists in database {self.db_name}.")
+            self.collection = self.database[self.col_name]
         else:
-            self._logger.error(f"{self._col_name} collection did not exist in database {self._db_name}.")
-            self._logger.info(f"Creating collection {self._col_name} in database {self._db_name}.")
-            self._collection = self._database[self._col_name]
+            self.logger.error(f"{self.col_name} collection did not exist in database {self.db_name}.")
+            self.logger.info(f"Creating collection {self.col_name} in database {self.db_name}.")
+            self.collection = self.database[self.col_name]
 
 
     def save(self, data: list[dict]):
         try:
-            self._logger.debug("Starting writing to db ... ")
+            self.logger.debug("Starting writing to db ... ")
 
-            results = self._collection.insert_many(data)
+            results = self.collection.insert_many(data)
 
-            self._logger.debug("Ending writing to db ... ")
+            self.logger.debug("Ending writing to db ... ")
             return results
         except BulkWriteError as e:
-            self._logger.error(f"Error: {str(e)}")
+            self.logger.error(f"Error: {str(e)}")
 
 
     def find(self, _filter: dict):
         try:
-            self._logger.debug(f"Start fetch from db for {_filter} ... ")
+            self.logger.debug(f"Start fetch from db for {_filter} ... ")
 
-            results = self._collection.find(_filter)
+            results = self.collection.find(_filter)
 
-            self._logger.debug(f"End fetch with results: {results}")
+            self.logger.debug(f"End fetch with results: {results}")
 
             return results
         except BulkWriteError as e:
-            self._logger.error(f"Error: {str(e)}")
+            self.logger.error(f"Error: {str(e)}")
