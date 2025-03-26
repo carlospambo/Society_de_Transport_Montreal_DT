@@ -18,8 +18,3 @@ class MongoDbDockerService(DockerService):
 
     def stop(self):
         self.kill_container()
-
-
-if __name__ == '__main__':
-    service = MongoDbDockerService()
-    service.start()
