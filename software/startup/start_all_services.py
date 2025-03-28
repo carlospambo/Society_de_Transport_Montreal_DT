@@ -18,6 +18,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         route_ids = list(set(int(i) for i in sys.argv[1].split(',')))
 
+    print(f"Starting serving for routes: {route_ids}")
+
     # STM API Service
     service = ApiService()
     service.start(route_ids)

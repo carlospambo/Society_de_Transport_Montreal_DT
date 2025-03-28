@@ -1,3 +1,4 @@
+import json
 import logging
 import math
 import time
@@ -13,42 +14,42 @@ class GpsCoordinatesValidationService:
 
 
     @staticmethod
-    def _deg_to_rad(x):
+    def deg_to_rad(x):
         return x * math.pi / 180
 
 
-    def _distance(self, from_coordinates:tuple, to_coordinates:tuple):
+    def calculate_distance(self, from_coordinates:tuple, to_coordinates:tuple):
         from_lat, from_lng = from_coordinates[0], from_coordinates[1]
         to_lat, to_lng = to_coordinates[0], to_coordinates[1]
 
-        half_d_lat = self._deg_to_rad((to_lat - from_lat) / 2)
-        half_d_lon = self._deg_to_rad((to_lng - from_lng) / 2)
+        half_d_lat = self.deg_to_rad((to_lat - from_lat) / 2)
+        half_d_lon = self.deg_to_rad((to_lng - from_lng) / 2)
 
-        a = (math.sin(half_d_lat) ** 2 + math.cos(self._deg_to_rad(from_lat)) * math.cos(self._deg_to_rad(to_lat)) * math.sin(half_d_lon) ** 2)
+        a = (math.sin(half_d_lat) ** 2 + math.cos(self.deg_to_rad(from_lat)) * math.cos(self.deg_to_rad(to_lat)) * math.sin(half_d_lon) ** 2)
 
         return EARTH_RADIUS * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
 
 
     def validate_gps_coordinates(self, payload:dict) -> dict:
-        self.logger.debug(f"'validate_gps_coordinates' called. Received values: {payload}")
+        self.logger.debug(f"Received values: {json.dumps(payload)}")
 
-        response = {"source": "stm_gps_coordinates_validation_service"}
+        response = {"source": "gps_coordinates_validation_service"}
 
         if 'data' not in payload:
             self.logger.error("Payload dictionary must contain 'data' field")
-
             response["time"] = time.time_ns()
             response["error"] = "Payload dictionary must contain 'data' field"
             return response
 
-        for i in enumerate(payload["data"]):
+        for i, data in enumerate(payload["data"]):
+
             try:
                 assert 'vehicle.trip.route_id' in payload["data"][i], "Data dictionary must contain 'vehicle.trip.route_id' field."
                 assert 'vehicle.position.latitude' in payload["data"][i], "Data dictionary must contain 'vehicle.position.latitude' field."
                 assert 'vehicle.position.longitude' in payload["data"][i], "Data dictionary must contain 'vehicle.position.longitude' field."
                 assert 'vehicle.current_stop_sequence' in payload["data"][i], "Data dictionary must contain 'vehicle.current_stop_sequence' field."
 
-                route_id =  int(payload["data"][i]['vehicle.trip.route_id'])
+                route_id =  int(data['vehicle.trip.route_id'])
                 results = self.mongodb_client.database["bus_stops"].find({"route_id": route_id})
                 results = list(results)
 
@@ -58,8 +59,7 @@ class GpsCoordinatesValidationService:
                     bus_stop = results[0]['routes'][payload["data"][i]['vehicle.current_stop_sequence'] - 1]
                     form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
                     to_coordinates = (payload["data"][i]['vehicle.position.latitude'], payload["data"][i]['vehicle.position.longitude'])
-                    distance = self._distance(form_coordinates, to_coordinates)
-
+                    distance = self.calculate_distance(form_coordinates, to_coordinates)
                     payload["data"][i]["vehicle.position.coordinates.status"] = "OK" if distance <= MAX_ALLOW_DISTANCE else "ANOMALY"
 
                 else:
@@ -69,7 +69,10 @@ class GpsCoordinatesValidationService:
             except AssertionError as e:
                 self.logger.error(f"{str(e)} for : {payload['data'][i]}")
 
+
         response["time"] = time.time_ns()
         response["data"] = payload["data"]
+
+        self.logger.debug(f"Returning: {response}")
 
         return response
