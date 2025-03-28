@@ -62,12 +62,16 @@ class MongoDB:
 
 
     def save(self, data: list[dict]):
+        if not data:
+            self.logger.info("Skipped writing to db, empty list provided.")
+            return
+
         try:
-            self.logger.debug("Starting writing to db ... ")
+            self.logger.info("Starting writing to db ... ")
 
             results = self.collection.insert_many(data)
 
-            self.logger.debug("Ending writing to db ... ")
+            self.logger.info("Ending writing to db ... ")
             return results
         except BulkWriteError as e:
             self.logger.error(f"Error: {str(e)}")

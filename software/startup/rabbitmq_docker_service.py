@@ -31,8 +31,3 @@ class RabbitMqDockerService(DockerService):
 
     def stop(self):
         self.kill_container()
-
-
-if __name__ == '__main__':
-    service = RabbitMqDockerService()
-    service.start()
