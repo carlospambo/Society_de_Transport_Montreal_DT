@@ -2,7 +2,7 @@
 import sys
 from startup.rabbitmq_docker_service import RabbitMqDockerService
 from startup.mongodb_docker_service  import MongoDbDockerService
-from startup.api_service import ApiService
+from startup.routing_service import RoutingService
 
 
 if __name__ == '__main__':
@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
     print(f"Starting serving for routes: {route_ids}")
 
-    # STM API Service
-    service = ApiService()
-    service.start(route_ids)
+    # # STM API Service
+    # service = RoutingService()
+    # service.start(route_ids)

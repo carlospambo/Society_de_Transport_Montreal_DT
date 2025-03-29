@@ -13,11 +13,23 @@ from protobuf_to_dict import protobuf_to_dict
 
 config_logger("config/logging.conf")
 
+def to_queue_format(_bytes) -> dict:
+    return {
+        "source": "stm_api_bus_update",
+        "time": time.time_ns(),
+        "data": _bytes
+    }
 
-class ApiService:
+def flatten_response(data:list[dict]) -> list[dict]:
+    flatten_data = []
+    for entity in data:
+        flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
+    return flatten_data
 
-    def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str = None, headers:dict = None):
-        self.logger = logging.getLogger("ApiRouteService")
+class RoutingService:
+
+    def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str=None, headers:dict=None):
+        self.logger = logging.getLogger("RoutingService")
         default_config = load_config("config/startup.conf")
         if rabbitmq_config is None:
             self.logger.error("RabbitMQ config value is empty, reverting to default configs.")
@@ -46,18 +58,9 @@ class ApiService:
         self.rabbitmq_client.close()
 
 
-    @staticmethod
-    def flatten_response(data:list[dict]) -> list[dict]:
-        flatten_data = []
-        for entity in data:
-            flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
-        return flatten_data
-
-
     def extract_timestamp(self, _data:dict) -> int:
         try:
             return int(_data['vehicle']['timestamp'])
-
         except KeyError as e:
             self.logger.error(f"Error at extracting timestamp: {str(e)}")
             return 0
@@ -90,28 +93,16 @@ class ApiService:
             data.sort(key=self.extract_timestamp, reverse=True)
 
         if flatten:
-            data = self.flatten_response(data)
+            data = flatten_response(data)
         self.logger.info("Finished processing response.")
         return data
 
 
     def publish_to_queue(self, _data: list[dict], start_time: float):
-        message = self.to_queue_format(_data)
-
-        # Publish to queues
+        message = to_queue_format(_data)
         self.logger.info(f"Message sent to queues: {self.bus_route_queue_names}.")
-
         self.rabbitmq_client.send_message(self.bus_route_queue_names['BusRoutesUpdates'], message)
-
         self.logger.info(f"Elapsed after message sent: {time.time() - start_time :.4f}s")
-
-
-    def store_records(self, _data: list[dict]):
-        self.logger.info("Start writing to db.")
-
-        self.mongodb_client.save(_data)
-
-        self.logger.info("Finished writing to db.")
 
 
     def fetch_by_route_id(self, route_id: int) -> list[dict]:
@@ -121,16 +112,8 @@ class ApiService:
     def fetch_by_route_ids(self, route_ids: list[int]) -> list[dict]:
         return self.process_response(self.fetch_bus_route_data(), route_ids)
 
-    @staticmethod
-    def to_queue_format(_bytes) -> dict:
-        return {
-            "source": "stm_api_bus_update",
-            "time": time.time_ns(),
-            "data": _bytes
-        }
 
-
-    def fetch_and_update_route(self, route_ids:list[int]=None, exec_interval=CTRL_EXEC_INTERVAL, strict_interval=False) -> None:
+    def fetch_and_update_route(self, exec_interval, route_ids:list[int]=None, strict_interval=False) -> None:
 
         try:
             while True:
@@ -138,14 +121,14 @@ class ApiService:
                 data = self.process_response(self.fetch_bus_route_data(), route_ids)
 
                 # Validate GPS Coordinates
-                validated_data = self.gps_service.validate_gps_coordinates(self.to_queue_format(data))
+                validated_data = self.gps_service.validate_gps_coordinates(to_queue_format(data))
 
                 if "data" in validated_data:
                     # Publish to queue
                     self.publish_to_queue(validated_data["data"], start)
 
                     # Store records
-                    self.store_records(validated_data["data"])
+                    self.mongodb_client.save(validated_data["data"])
                 else: # Log error
                     self.logger.error(f"GPS validation service returned: {validated_data}")
 
@@ -153,9 +136,9 @@ class ApiService:
                 elapsed = time.time() - start
 
                 if elapsed > exec_interval:
-                    self.logger.error(
-                        f"Control step taking {elapsed - exec_interval}s more than specified interval {exec_interval}s. Please specify higher interval."
-                    )
+                    exec_time = elapsed - exec_interval
+                    msg = f"Control step taking {exec_time}s more than specified interval {exec_interval}s. Please specify higher interval."
+                    self.logger.error(msg)
 
                     if strict_interval:
                         raise ValueError(exec_interval)
@@ -170,7 +153,7 @@ class ApiService:
         self.setup()
         while True:
             try:
-                self.fetch_and_update_route(route_ids=route_ids)
+                self.fetch_and_update_route(CTRL_EXEC_INTERVAL, route_ids=route_ids)
             except KeyboardInterrupt:
                 exit(0)
 
@@ -178,9 +161,3 @@ class ApiService:
                 self.logger.error(f"The following exception occurred: {e}")
                 traceback.print_tb(e.__traceback__)
                 exit(0)
-
-
-
-if __name__ == '__main__':
-    service = ApiService()
-    service.start()

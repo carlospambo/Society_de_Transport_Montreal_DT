@@ -2,9 +2,23 @@ import json
 import logging
 import math
 import time
+from enum import Enum
 from communication.protocol import EARTH_RADIUS, MAX_ALLOW_DISTANCE
 from communication.mongodb import MongoDB
 from config.config import load_config, config_logger
+
+class CoordinateStatus(Enum):
+    OK = "OK"
+    ANOMALY = "ANOMALY"
+    NOT_FOUND = "NOT_FOUND"
+
+    def __str__(self):
+        return f"{self.value}"
+
+    @classmethod
+    def parse_from_distance(cls, distance, max_allowed_dist):
+        return CoordinateStatus.OK if distance <= max_allowed_dist else CoordinateStatus.ANOMALY
+
 
 class GpsCoordinatesValidationService:
 
@@ -28,6 +42,46 @@ class GpsCoordinatesValidationService:
         a = (math.sin(half_d_lat) ** 2 + math.cos(self.deg_to_rad(from_lat)) * math.cos(self.deg_to_rad(to_lat)) * math.sin(half_d_lon) ** 2)
 
         return EARTH_RADIUS * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+
+    def routes_sort(self, route):
+        try:
+            return int(route['stop_sequence'])
+        except KeyError as e:
+            self.logger.error(f"Error at extracting timestamp: {str(e)}")
+            return 0
+
+
+    def determine_coordinates_status(self, result, data) -> CoordinateStatus:
+        routes = result['routes'] if 'routes' in result else []
+        max_allowed_distance = result['maximum_distance'] if 'maximum_distance' in result else MAX_ALLOW_DISTANCE
+
+        if not routes: # If no bus stops found return NOT_FOUND
+            return CoordinateStatus.NOT_FOUND
+
+        routes.sort(key=self.routes_sort, reverse=False)
+        stop_sequence = int(data['vehicle.current_stop_sequence']) - 1
+        form_coordinates = (routes[stop_sequence]['latitude'], routes[stop_sequence]['longitude'])
+        to_coordinates = (data['vehicle.position.latitude'], data['vehicle.position.longitude'])
+        distance = self.calculate_distance(form_coordinates, to_coordinates)
+        status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
+
+        if CoordinateStatus.ANOMALY == status:
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
+
+        if  max_allowed_distance <= distance <= 1.01: # check against the next bus stop
+            form_coordinates = (routes[stop_sequence + 1]['latitude'], routes[stop_sequence + 1]['longitude'])
+            distance = self.calculate_distance(form_coordinates, to_coordinates)
+            status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
+
+        elif distance >= 1.01: # reverse the order of bus stops
+            routes.sort(key=self.routes_sort, reverse=True)
+            form_coordinates = (routes[stop_sequence]['latitude'], routes[stop_sequence]['longitude'])
+            distance = self.calculate_distance(form_coordinates, to_coordinates)
+            status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
+
+        return status
 
 
     def validate_gps_coordinates(self, payload:dict) -> dict:
@@ -55,20 +109,14 @@ class GpsCoordinatesValidationService:
 
                 if results and len(results) > 0 and 'routes' in results[0]:
                     self.logger.debug(f"Database returned: {results[0]}")
-
-                    bus_stop = results[0]['routes'][payload["data"][i]['vehicle.current_stop_sequence'] - 1]
-                    form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
-                    to_coordinates = (payload["data"][i]['vehicle.position.latitude'], payload["data"][i]['vehicle.position.longitude'])
-                    distance = self.calculate_distance(form_coordinates, to_coordinates)
-                    payload["data"][i]["vehicle.position.coordinates.status"] = "OK" if distance <= MAX_ALLOW_DISTANCE else "ANOMALY"
-
+                    coordinates_status = self.determine_coordinates_status(results[0], payload["data"][i])
                 else:
-                    payload["data"][i]["vehicle.position.coordinates.status"] = "NOT_FOUND"
                     self.logger.error(f"No data found in the database. Cannot validate coordinates for route : {route_id}")
+                    coordinates_status = CoordinateStatus.NOT_FOUND
 
+                payload["data"][i]["vehicle.position.coordinates.status"] = coordinates_status.value
             except AssertionError as e:
                 self.logger.error(f"{str(e)} for : {payload['data'][i]}")
-
 
         response["time"] = time.time_ns()
         response["data"] = payload["data"]
