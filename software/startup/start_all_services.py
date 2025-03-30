@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
     print(f"Starting serving for routes: {route_ids}")
 
-    # # STM API Service
-    # service = RoutingService()
-    # service.start(route_ids)
+    # STM API Service
+    service = RoutingService()
+    service.start(route_ids)
