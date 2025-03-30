@@ -10,12 +10,15 @@ DEFAULT_DOCKER_COMPOSE_COMMAND = "docker compose up --detach --build"
 
 class DockerService:
 
-    def __init__(self, container_name: str, logger: Logger):
+    def __init__(self, container_name:str, docker_compose_directory_path:str, log_file_name:str, logger: Logger, test_connection_function=None):
         self.container_name = container_name
+        self.docker_compose_directory_path = docker_compose_directory_path
+        self.log_file_name = log_file_name
         self.logger = logger
+        self.test_connection_function = test_connection_function
 
 
-    def is_container_running(self) -> bool:
+    def is_container_running(self):
         running_status = False
         client = docker.from_env()
         try:
@@ -32,6 +35,7 @@ class DockerService:
             client.close()
 
         return running_status
+
 
     def kill_container(self):
         self.logger.info("Searching for container with the name: " + self.container_name)
@@ -54,15 +58,15 @@ class DockerService:
             client.close()
 
 
-    def start_container(self, log_file_path, docker_compose_directory_path, test_connection_function=None, sleep_time:int=1, max_attempts:int=10):
-        self.logger.info(f"Log will be stored in: {os.path.abspath(log_file_path)}")
+    def start_container(self, sleep_time:int=1, max_attempts:int=10):
+        self.logger.info(f"Log will be stored in: {os.path.abspath(self.log_file_name)}")
 
-        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self.log_file_name), exist_ok=True)
 
-        with open(log_file_path, "wt") as f:
+        with open(self.log_file_name, "wt") as f:
             self.logger.info(f"Running docker-compose command: {DEFAULT_DOCKER_COMPOSE_COMMAND}")
 
-            proc = subprocess.run(DEFAULT_DOCKER_COMPOSE_COMMAND, cwd=docker_compose_directory_path, shell=True, stdout=f)
+            proc = subprocess.run(DEFAULT_DOCKER_COMPOSE_COMMAND, cwd=self.docker_compose_directory_path, shell=True, stdout=f)
             if proc.returncode == 0:
                 self.logger.info("docker-compose successful.")
             else:
@@ -72,8 +76,8 @@ class DockerService:
             attempts = max_attempts
 
             while service_ready is False and attempts > 0:
-                if test_connection_function is not None:
-                    r = test_connection_function()
+                if self.test_connection_function is not None:
+                    r = self.test_connection_function()
                     if r is True:
                         self.logger.info("Service is ready")
                         service_ready = True
@@ -83,6 +87,17 @@ class DockerService:
                         if attempts > 0:
                             time.sleep(sleep_time)
                 else:
-                    self.logger.debug("Empty test_connection_function provided")
+                    self.logger.info("Empty test_connection_function provided")
                     self.logger.info("Service is ready")
                     service_ready = True
+
+
+    def start(self):
+        if self.is_container_running():
+            self.logger.info(f"Container: '{self.container_name}' is running, skipping container kill step ...")
+        else:
+            self.start_container()
+
+
+    def stop(self):
+        self.kill_container()
