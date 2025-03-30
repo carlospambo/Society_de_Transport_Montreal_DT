@@ -7,7 +7,7 @@ from startup.gps_coordinates_validation_service import GpsCoordinatesValidationS
 from config.config import config_logger, load_config
 from communication.rabbitmq import RabbitMQ
 from communication.mongodb import MongoDB
-from communication.protocol import encode_json , ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_VALIDATION_SERVICE, STM_API_URL, STM_API_HEADER, CTRL_EXEC_INTERVAL
+from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_VALIDATION_SERVICE, STM_API_URL, STM_API_HEADER, EXECUTION_INTERVAL
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
@@ -113,7 +113,7 @@ class RoutingService:
         return self.process_response(self.fetch_bus_route_data(), route_ids)
 
 
-    def fetch_and_update_route(self, exec_interval, route_ids:list[int]=None, strict_interval=False) -> None:
+    def fetch_and_update_route(self, execution_interval, route_ids:list[int]=None, strict_interval=False) -> None:
 
         try:
             while True:
@@ -135,15 +135,15 @@ class RoutingService:
                 self.logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
 
-                if elapsed > exec_interval:
-                    exec_time = elapsed - exec_interval
-                    msg = f"Control step taking {exec_time}s more than specified interval {exec_interval}s. Please specify higher interval."
+                if elapsed > execution_interval:
+                    exec_time = elapsed - execution_interval
+                    msg = f"Control step taking {exec_time}s more than specified interval {execution_interval}s. Please specify higher interval."
                     self.logger.error(msg)
 
                     if strict_interval:
-                        raise ValueError(exec_interval)
+                        raise ValueError(execution_interval)
                 else:
-                    time.sleep(exec_interval - elapsed)
+                    time.sleep(execution_interval - elapsed)
         except:
             self.cleanup()
             raise
@@ -153,7 +153,7 @@ class RoutingService:
         self.setup()
         while True:
             try:
-                self.fetch_and_update_route(CTRL_EXEC_INTERVAL, route_ids=route_ids)
+                self.fetch_and_update_route(EXECUTION_INTERVAL, route_ids)
             except KeyboardInterrupt:
                 exit(0)
 
