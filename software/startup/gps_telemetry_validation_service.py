@@ -20,10 +20,10 @@ class CoordinateStatus(Enum):
         return CoordinateStatus.OK if distance <= max_allowed_dist else CoordinateStatus.ANOMALY
 
 
-class GpsCoordinatesValidationService:
+class GpsTelemetryValidationService():
 
     def __init__(self, mongodb_client: MongoDB):
-        self.logger = logging.getLogger("GpsCoordinatesValidationService")
+        self.logger = logging.getLogger("GpsTelemetryValidationService")
         self.mongodb_client = mongodb_client
 
 
@@ -51,40 +51,45 @@ class GpsCoordinatesValidationService:
             return 0
 
 
-    def determine_coordinates_status(self, result, data) -> CoordinateStatus:
+    def determine_coordinates_status(self, result, data) -> tuple[CoordinateStatus,str]:
         routes = result['routes'] if 'routes' in result else []
         max_allowed_distance = result['maximum_distance'] if 'maximum_distance' in result else MAX_ALLOW_DISTANCE
+        bus_stop = {'stop_name': ''}
 
         if not routes: # If no bus stops found return NOT_FOUND
-            return CoordinateStatus.NOT_FOUND
+            return CoordinateStatus.NOT_FOUND, bus_stop['stop_name']
 
         routes.sort(key=self.routes_sort, reverse=False)
         stop_sequence = int(data['vehicle.current_stop_sequence']) - 1
-        form_coordinates = (routes[stop_sequence]['latitude'], routes[stop_sequence]['longitude'])
+        bus_stop = routes[stop_sequence]['stop_name']
+        form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
         to_coordinates = (data['vehicle.position.latitude'], data['vehicle.position.longitude'])
         distance = self.calculate_distance(form_coordinates, to_coordinates)
         status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
 
         if CoordinateStatus.ANOMALY == status:
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
 
         if  max_allowed_distance <= distance <= 1.01: # check against the next bus stop
-            form_coordinates = (routes[stop_sequence + 1]['latitude'], routes[stop_sequence + 1]['longitude'])
+            bus_stop = routes[stop_sequence + 1]
+            form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
             distance = self.calculate_distance(form_coordinates, to_coordinates)
             status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
 
         elif distance >= 1.01: # reverse the order of bus stops
             routes.sort(key=self.routes_sort, reverse=True)
-            form_coordinates = (routes[stop_sequence]['latitude'], routes[stop_sequence]['longitude'])
+            bus_stop = routes[stop_sequence]
+            form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
             distance = self.calculate_distance(form_coordinates, to_coordinates)
             status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {routes[stop_sequence + 1]}, Vehicle: {data}")
 
-        return status
+            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
+
+        return status, bus_stop['stop_name']
 
 
-    def validate_gps_coordinates(self, payload:dict) -> dict:
+    def validate_telemetry(self, payload:dict) -> dict:
         self.logger.debug(f"Received values: {json.dumps(payload)}")
 
         response = {"source": "gps_coordinates_validation_service"}
@@ -106,15 +111,18 @@ class GpsCoordinatesValidationService:
                 route_id =  int(data['vehicle.trip.route_id'])
                 results = self.mongodb_client.database["bus_stops"].find({"route_id": route_id})
                 results = list(results)
+                bus_stop = ""
 
                 if results and len(results) > 0 and 'routes' in results[0]:
                     self.logger.debug(f"Database returned: {results[0]}")
-                    coordinates_status = self.determine_coordinates_status(results[0], payload["data"][i])
+                    coordinates_status, bus_stop = self.determine_coordinates_status(results[0], payload["data"][i])
+
                 else:
                     self.logger.error(f"No data found in the database. Cannot validate coordinates for route : {route_id}")
                     coordinates_status = CoordinateStatus.NOT_FOUND
 
                 payload["data"][i]["vehicle.position.coordinates.status"] = coordinates_status.value
+                payload["data"][i]["vehicle.current_bus_stop"] = bus_stop
             except AssertionError as e:
                 self.logger.error(f"{str(e)} for : {payload['data'][i]}")
 

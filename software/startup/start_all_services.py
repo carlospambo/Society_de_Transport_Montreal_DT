@@ -3,7 +3,7 @@ import sys
 from startup.rabbitmq_docker_service import RabbitMqDockerService
 from startup.mongodb_docker_service  import MongoDbDockerService
 from startup.routing_service import RoutingService
-
+from communication.protocol import EXECUTION_INTERVAL
 
 if __name__ == '__main__':
     # RabbitMQ
@@ -22,4 +22,4 @@ if __name__ == '__main__':
 
     # STM API Service
     service = RoutingService()
-    service.start(route_ids)
+    service.start(execution_interval=EXECUTION_INTERVAL, route_ids=route_ids)

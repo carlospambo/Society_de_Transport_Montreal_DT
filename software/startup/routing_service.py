@@ -3,11 +3,11 @@ import requests
 import logging
 import time
 import pandas as pd
-from startup.gps_coordinates_validation_service import GpsCoordinatesValidationService
+from startup.gps_telemetry_validation_service import GpsTelemetryValidationService
 from config.config import config_logger, load_config
 from communication.rabbitmq import RabbitMQ
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_COORDINATES_VALIDATION_SERVICE, STM_API_URL, STM_API_HEADER, EXECUTION_INTERVAL
+from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_TELEMETRY_VALIDATION_SERVICE, STM_API_URL, STM_API_HEADER
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
@@ -41,7 +41,7 @@ class RoutingService:
 
         self.rabbitmq_client = RabbitMQ(**rabbitmq_config)
         self.mongodb_client = MongoDB(**mongodb_config)
-        self.gps_service = GpsCoordinatesValidationService(self.mongodb_client)
+        self.gps_telemetry_service = GpsTelemetryValidationService(self.mongodb_client)
         self.url = STM_API_URL if not url else url
         self.headers = STM_API_HEADER if not headers else headers
         self.bus_route_queue_names = {}
@@ -120,17 +120,17 @@ class RoutingService:
                 start = time.time()
                 data = self.process_response(self.fetch_bus_route_data(), route_ids)
 
-                # Validate GPS Coordinates
-                validated_data = self.gps_service.validate_gps_coordinates(to_queue_format(data))
+                # Validate GPS Telemetry
+                data = self.gps_telemetry_service.validate_telemetry(to_queue_format(data))
 
-                if "data" in validated_data:
+                if "data" in data:
                     # Publish to queue
-                    self.publish_to_queue(validated_data["data"], start)
+                    self.publish_to_queue(data["data"], start)
 
                     # Store records
-                    self.mongodb_client.save(validated_data["data"])
+                    self.mongodb_client.save(data["data"])
                 else: # Log error
-                    self.logger.error(f"GPS validation service returned: {validated_data}")
+                    self.logger.error(f"GPS telemetry validation service returned: {data}")
 
                 self.logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
@@ -149,11 +149,11 @@ class RoutingService:
             raise
 
 
-    def start(self, route_ids:list[int]=None):
+    def start(self, exec_interval, route_ids:list[int]=None):
         self.setup()
         while True:
             try:
-                self.fetch_and_update_route(EXECUTION_INTERVAL, route_ids)
+                self.fetch_and_update_route(exec_interval, route_ids)
             except KeyboardInterrupt:
                 exit(0)
 
