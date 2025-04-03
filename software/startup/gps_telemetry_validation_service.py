@@ -35,13 +35,11 @@ class GpsTelemetryValidationService():
     def calculate_distance(self, from_coordinates:tuple, to_coordinates:tuple):
         from_lat, from_lng = from_coordinates[0], from_coordinates[1]
         to_lat, to_lng = to_coordinates[0], to_coordinates[1]
-
         half_d_lat = self.deg_to_rad((to_lat - from_lat) / 2)
         half_d_lon = self.deg_to_rad((to_lng - from_lng) / 2)
-
         a = (math.sin(half_d_lat) ** 2 + math.cos(self.deg_to_rad(from_lat)) * math.cos(self.deg_to_rad(to_lat)) * math.sin(half_d_lon) ** 2)
-
         return EARTH_RADIUS * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+
 
     def routes_sort(self, route):
         try:
@@ -61,7 +59,7 @@ class GpsTelemetryValidationService():
 
         routes.sort(key=self.routes_sort, reverse=False)
         stop_sequence = int(data['vehicle.current_stop_sequence']) - 1
-        bus_stop = routes[stop_sequence]['stop_name']
+        bus_stop = routes[stop_sequence]
         form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
         to_coordinates = (data['vehicle.position.latitude'], data['vehicle.position.longitude'])
         distance = self.calculate_distance(form_coordinates, to_coordinates)

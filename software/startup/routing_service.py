@@ -149,11 +149,11 @@ class RoutingService:
             raise
 
 
-    def start(self, exec_interval, route_ids:list[int]=None):
+    def start(self, execution_interval, route_ids:list[int]=None):
         self.setup()
         while True:
             try:
-                self.fetch_and_update_route(exec_interval, route_ids)
+                self.fetch_and_update_route(execution_interval, route_ids)
             except KeyboardInterrupt:
                 exit(0)
 
