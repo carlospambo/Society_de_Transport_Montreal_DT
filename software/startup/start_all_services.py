@@ -3,14 +3,16 @@ import sys
 from startup.rabbitmq_docker_service import RabbitMqDockerService
 from startup.mongodb_docker_service  import MongoDbDockerService
 from startup.routing_service import RoutingService
+from startup.telemetry_validation_service import TelemetryValidationService
+from startup.notification_service import NotificationService
 from communication.protocol import EXECUTION_INTERVAL
 
 if __name__ == '__main__':
-    # RabbitMQ
+    # Setup RabbitMQ docker
     rabbitmq = RabbitMqDockerService()
     rabbitmq.start()
 
-    # MongoDB
+    # Setup MongoDB docker
     mongodb = MongoDbDockerService()
     mongodb.start()
 
@@ -20,6 +22,14 @@ if __name__ == '__main__':
 
     print(f"Starting serving for routes: {route_ids}")
 
-    # STM API Service
-    service = RoutingService()
-    service.start(execution_interval=EXECUTION_INTERVAL, route_ids=route_ids)
+    # Setup Data Ingestion Service
+    routes_service = RoutingService()
+    routes_service.start(execution_interval=EXECUTION_INTERVAL, route_ids=route_ids)
+
+    # Setup Telemetry Validation Service
+    telemetry_service = TelemetryValidationService()
+    telemetry_service.consume()
+
+    # Setup Notification Service
+    notification_service = NotificationService()
+    notification_service.consume()

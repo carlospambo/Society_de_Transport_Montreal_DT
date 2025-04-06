@@ -1,3 +1,5 @@
+import traceback
+import json
 import logging
 from enum import Enum
 import smtplib
@@ -6,6 +8,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
 
 from config.config import config_logger, load_config
+from communication.protocol import ROUTING_KEY_STM_NOTIFICATION
+from communication.rpc_server import RPCServer
 
 config_logger("config/logging.conf")
 
@@ -44,16 +48,36 @@ class OccupancyStatus(Enum):
         except ValueError:
             raise ValueError(f"Invalid OccupancyStatus value: {value}")
 
-class NotificationService():
 
-    def __init__(self, smtp_host:str, port:int, sender:str, password:str, clients:str=None):
+class NotificationService(RPCServer):
+
+    def __init__(self, smtp_host:str=None, port:int=None, sender:str=None, password:str=None, clients:str=None, rabbitmq_config:dict=None):
+        default_config = load_config("config/startup.conf")
         self.logger = logging.getLogger("NotificationService")
-        self.smtp_host = smtp_host
-        self.port = port
-        self.sender = sender
-        self.password = password
+
+        if rabbitmq_config is None:
+            self.logger.debug("RabbitMQ config value is empty, reverting to default configs.")
+            rabbitmq_config = default_config['rabbitmq']
+
+        super().__init__(**rabbitmq_config)
+
+        self.smtp_host = smtp_host if smtp_host is not None else default_config['notification']['smtp_host']
+        self.port = port if port is not None else default_config['notification']['port']
+        self.sender = sender if sender is not None else default_config['notification']['sender']
+        self.password = password if password is not None else default_config['notification']['password']
+        if clients is not None:
+            self.clients = clients.split(',')
+        elif default_config['notification']['clients'] is not None:
+            self.clients = default_config['notification']['clients'].split(',')
+        else:
+            self.clients = []
         self.server = None
-        self.clients = clients.split(',') if clients is not None else []
+
+
+    def consume(self):
+        # Subscribe to any message coming from the STM Telemetry Validation.
+        self.setup(routing_key=ROUTING_KEY_STM_NOTIFICATION, on_message_callback=self.send_alert)
+        self.logger.info("NotificationService setup complete.")
 
 
     def _connect_and_send(self, message:MIMEMultipart):
@@ -151,7 +175,7 @@ class NotificationService():
                 </body>
         """
 
-    def build_message(self, events:list) -> MIMEMultipart:
+    def _build_messages(self, events:list) -> MIMEMultipart:
         msg = MIMEMultipart()
         msg["Subject"] = "[Action Required] for Société de Transport de Montréal Bus Fleet Digital Twin"
         msg["From"] = self.sender
@@ -159,11 +183,18 @@ class NotificationService():
         return msg
 
 
-    def send_alert(self, events:list, receivers=None):
+    def send_alert(self, channel, method, properties, json_payload:str):
+        self.logger.debug(f"Received JSON payload: {json_payload}")
 
         try:
-            receivers = receivers if receivers is not None else self.clients
-            message = self.build_message(events)
+            payload_dict = json.loads(json_payload)
+            if 'data' not in payload_dict:
+                self.logger.debug("Service received empty payload to be processed")
+                return
+
+            events = payload_dict['data']['events'] if 'events' in payload_dict['data'] else []
+            receivers = payload_dict['data']['receivers'] if payload_dict['data']['receivers'] is not None else self.clients
+            message = self._build_messages(events)
 
             for receiver in receivers:
                 message["To"] = receiver
@@ -171,4 +202,9 @@ class NotificationService():
                 self._connect_and_send(message)
 
         except Exception as e:
-            self.logger.error(f"Error attempting to send email to: {receivers}.\nException: {str(e)}")
+            traceback.print_tb(e.__traceback__)
+            self.logger.error(f"Error attempting to send email: {str(e)}")
+
+
+if __name__ == '__main__':
+    service = NotificationService()

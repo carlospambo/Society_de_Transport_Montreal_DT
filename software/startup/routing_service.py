@@ -3,19 +3,19 @@ import requests
 import logging
 import time
 import pandas as pd
-from startup.gps_telemetry_validation_service import GpsTelemetryValidationService
 from config.config import config_logger, load_config
-from communication.rabbitmq import RabbitMQ
+from communication.rpc_server import RPCServer
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_BUS_ROUTE_UPDATES, ROUTING_KEY_GPS_TELEMETRY_VALIDATION_SERVICE, STM_API_URL, STM_API_HEADER
+from communication.protocol import ROUTING_KEY_STM_TELEMETRY_VALIDATION, STM_API_URL, STM_API_HEADER
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
 config_logger("config/logging.conf")
 
 def to_queue_format(_bytes) -> dict:
+
     return {
-        "source": "stm_api_bus_update",
+        "source": "stm_api_bus_routes_update",
         "time": time.time_ns(),
         "data": _bytes
     }
@@ -26,7 +26,7 @@ def flatten_response(data:list[dict]) -> list[dict]:
         flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
     return flatten_data
 
-class RoutingService:
+class RoutingService(RPCServer):
 
     def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str=None, headers:dict=None):
         self.logger = logging.getLogger("RoutingService")
@@ -39,23 +39,22 @@ class RoutingService:
             self.logger.error("MongoDB config value is empty, reverting to default configs.")
             mongodb_config = default_config["mongodb"]
 
-        self.rabbitmq_client = RabbitMQ(**rabbitmq_config)
         self.mongodb_client = MongoDB(**mongodb_config)
-        self.gps_telemetry_service = GpsTelemetryValidationService(self.mongodb_client)
         self.url = STM_API_URL if not url else url
         self.headers = STM_API_HEADER if not headers else headers
-        self.bus_route_queue_names = {}
+        super().__init__(**rabbitmq_config)
+        self.setup()
 
 
     def setup(self):
-        self.rabbitmq_client.connect_to_server()
-        self.logger.info("RabbitMQ connected.")
-        self.bus_route_queue_names['BusRoutesUpdates'] = self.rabbitmq_client.declare_local_queue(routing_key=ROUTING_KEY_BUS_ROUTE_UPDATES)
+        self.connect_to_server()
+        self.declare_local_queue(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION)
+        self.logger.info("RoutingService setup complete.")
 
 
     def cleanup(self):
         self.logger.info("RabbitMQ connection cleaning up.")
-        self.rabbitmq_client.close()
+        self.close()
 
 
     def extract_timestamp(self, _data:dict) -> int:
@@ -98,13 +97,6 @@ class RoutingService:
         return data
 
 
-    def publish_to_queue(self, _data: list[dict], start_time: float):
-        message = to_queue_format(_data)
-        self.logger.info(f"Message sent to queues: {self.bus_route_queue_names}.")
-        self.rabbitmq_client.send_message(self.bus_route_queue_names['BusRoutesUpdates'], message)
-        self.logger.info(f"Elapsed after message sent: {time.time() - start_time :.4f}s")
-
-
     def fetch_by_route_id(self, route_id: int) -> list[dict]:
         return self.process_response(self.fetch_bus_route_data(), [route_id])
 
@@ -120,17 +112,10 @@ class RoutingService:
                 start = time.time()
                 data = self.process_response(self.fetch_bus_route_data(), route_ids)
 
-                # Validate GPS Telemetry
-                data = self.gps_telemetry_service.validate_telemetry(to_queue_format(data))
-
-                if "data" in data:
-                    # Publish to queue
-                    self.publish_to_queue(data["data"], start)
-
-                    # Store records
-                    self.mongodb_client.save(data["data"])
-                else: # Log error
-                    self.logger.error(f"GPS telemetry validation service returned: {data}")
+                # Publish to Telemetry Validation
+                self.logger.debug(f"Message: {data}")
+                self.logger.debug(f"Published to queue: {ROUTING_KEY_STM_TELEMETRY_VALIDATION}")
+                self.send_message(ROUTING_KEY_STM_TELEMETRY_VALIDATION, to_queue_format(data))
 
                 self.logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
@@ -161,3 +146,8 @@ class RoutingService:
                 self.logger.error(f"The following exception occurred: {e}")
                 traceback.print_tb(e.__traceback__)
                 exit(0)
+
+
+if __name__ == '__main__':
+    service = RoutingService()
+    service.start(15, [45, 55, 121])

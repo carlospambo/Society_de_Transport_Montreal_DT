@@ -14,16 +14,17 @@ class RPCServer(RabbitMQ):
         self._logger = logging.getLogger("RPCServer")
 
 
-    def setup(self, routing_key, queue_name):
+    def setup(self, routing_key, queue_name, on_message_callback = None):
         self.connect_to_server()
         self.channel.basic_qos(prefetch_count=1)
         self.channel.queue_declare(queue=queue_name)
-        self.channel.queue_bind(
-            exchange=self.exchange_name,
-            queue=queue_name,
-            routing_key=routing_key
-        )
-        self.channel.basic_consume(queue=queue_name, on_message_callback=self.serve)
+        self.channel.queue_bind(exchange=self.exchange_name, queue=queue_name, routing_key=routing_key)
+
+        if on_message_callback is None:
+            on_message_callback = self.serve
+
+        self.channel.basic_consume(queue=queue_name, on_message_callback=on_message_callback)
+
         self._logger.debug(f"Ready to listen for messages in queue {queue_name} bound to topic {routing_key}")
 
 
