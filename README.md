@@ -19,12 +19,12 @@ pip install -r requirements.txt
 
 - Then, navigate to the `software` folder and run the command to start all services:
 ```
-python -m startup.start_all_services
+python -m startup.start_route_update_service
 ```
 
 - or, add the parameter after the module script to the command to run the services for a select number of bus routes, i.e: for buses `121, 41, and 45` only:
 ```
-python -m startup.start_all_services "140, 121, 45, 41"
+python -m startup.start_route_update_service "140, 121, 45, 41"
 ```
 
 ## STM API OAuth

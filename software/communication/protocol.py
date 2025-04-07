@@ -20,4 +20,3 @@ def encode_json(object_):
 
 def decode_json(bytes_):
     return json.loads(bytes_.decode(ENCODING))
-

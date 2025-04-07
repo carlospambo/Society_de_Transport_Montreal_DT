@@ -59,8 +59,6 @@ class NotificationService(RPCServer):
             self.logger.debug("RabbitMQ config value is empty, reverting to default configs.")
             rabbitmq_config = default_config['rabbitmq']
 
-        super().__init__(**rabbitmq_config)
-
         self.smtp_host = smtp_host if smtp_host is not None else default_config['notification']['smtp_host']
         self.port = port if port is not None else default_config['notification']['port']
         self.sender = sender if sender is not None else default_config['notification']['sender']
@@ -72,11 +70,12 @@ class NotificationService(RPCServer):
         else:
             self.clients = []
         self.server = None
+        super().__init__(**rabbitmq_config)
 
 
-    def consume(self):
+    def complete_setup(self):
         # Subscribe to any message coming from the STM Telemetry Validation.
-        self.setup(routing_key=ROUTING_KEY_STM_NOTIFICATION, on_message_callback=self.send_alert)
+        self.subscribe(routing_key=ROUTING_KEY_STM_NOTIFICATION, on_message_callback=self.send_alert)
         self.logger.info("NotificationService setup complete.")
 
 

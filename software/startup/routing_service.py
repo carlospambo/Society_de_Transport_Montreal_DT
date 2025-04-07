@@ -6,7 +6,7 @@ import pandas as pd
 from config.config import config_logger, load_config
 from communication.rpc_server import RPCServer
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_STM_TELEMETRY_VALIDATION, STM_API_URL, STM_API_HEADER
+from communication.protocol import ROUTING_KEY_STM_TELEMETRY_VALIDATION, ROUTING_KEY_STM_BUS_ROUTE_UPDATES, STM_API_URL, STM_API_HEADER
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
@@ -48,6 +48,7 @@ class RoutingService(RPCServer):
 
     def setup(self):
         self.connect_to_server()
+        self.declare_local_queue(routing_key=ROUTING_KEY_STM_BUS_ROUTE_UPDATES)
         self.declare_local_queue(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION)
         self.logger.info("RoutingService setup complete.")
 
@@ -114,8 +115,9 @@ class RoutingService(RPCServer):
 
                 # Publish to Telemetry Validation
                 self.logger.debug(f"Message: {data}")
-                self.logger.debug(f"Published to queue: {ROUTING_KEY_STM_TELEMETRY_VALIDATION}")
+                self.logger.debug(f"Published to queues: [{ROUTING_KEY_STM_TELEMETRY_VALIDATION}, {ROUTING_KEY_STM_BUS_ROUTE_UPDATES}]")
                 self.send_message(ROUTING_KEY_STM_TELEMETRY_VALIDATION, to_queue_format(data))
+                self.send_message(ROUTING_KEY_STM_BUS_ROUTE_UPDATES, to_queue_format(data))
 
                 self.logger.info("Waiting for next execution cycle ...")
                 elapsed = time.time() - start
@@ -135,7 +137,7 @@ class RoutingService(RPCServer):
 
 
     def start(self, execution_interval, route_ids:list[int]=None):
-        self.setup()
+
         while True:
             try:
                 self.fetch_and_update_route(execution_interval, route_ids)

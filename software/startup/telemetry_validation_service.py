@@ -1,9 +1,10 @@
 import json
+import traceback
 import logging
 import math
 import time
 from enum import Enum
-from communication.protocol import EARTH_RADIUS, MAX_ALLOW_DISTANCE, ROUTING_KEY_STM_TELEMETRY_VALIDATION, ROUTING_KEY_STM_BUS_ROUTE_UPDATES, ROUTING_KEY_STM_NOTIFICATION
+from communication.protocol import EARTH_RADIUS, MAX_ALLOW_DISTANCE, ROUTING_KEY_STM_TELEMETRY_VALIDATION, ROUTING_KEY_STM_NOTIFICATION
 from communication.mongodb import MongoDB
 from communication.rpc_server import RPCServer
 from config.config import load_config, config_logger
@@ -37,14 +38,12 @@ class TelemetryValidationService(RPCServer):
 
         self.mongodb_client = MongoDB(**mongodb_config)
         super().__init__(**rabbitmq_config)
-        self.complete_setup()
+
 
     def complete_setup(self):
         # Subscribe to any message coming from the STM GPS Routes Update.
-        self.setup(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION, on_message_callback=self.validate_telemetry)
+        self.setup(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION, queue_name=ROUTING_KEY_STM_TELEMETRY_VALIDATION, on_message_callback=self.validate_telemetry)
         self.declare_local_queue(routing_key=ROUTING_KEY_STM_NOTIFICATION)
-        self.declare_local_queue(routing_key=ROUTING_KEY_STM_BUS_ROUTE_UPDATES)
-
         self.logger.info("TelemetryValidationService setup complete.")
 
 
@@ -111,16 +110,10 @@ class TelemetryValidationService(RPCServer):
     def validate_telemetry(self, channel, method, properties, json_payload:str):
         self.logger.info(f"Received JSON payload: {json_payload}")
 
-        message = {"source": "telemetry_validation_service"}
-
         payload_dict = json.loads(json_payload)
 
         if 'data' not in payload_dict:
-            self.logger.debug("Service received empty payload to be processed")
-            message["time"] = time.time_ns()
-            message["error"] = "Service received empty payload to be processed."
-            message["data"] = []
-            self.send_message(routing_key=ROUTING_KEY_STM_BUS_ROUTE_UPDATES, message=message)
+            self.logger.error("Service received empty payload to be processed")
             return
 
         anomaly_data = []
@@ -153,24 +146,28 @@ class TelemetryValidationService(RPCServer):
             except AssertionError as e:
                 self.logger.error(f"{str(e)} for : {payload_dict['data'][i]}")
 
-        message["time"] = time.time_ns()
-        message["data"] = payload_dict["data"]
-
-        # Return OK Messages
-        self.logger.debug(f"Message: {message}")
-        self.logger.debug(f"Published to queue: {ROUTING_KEY_STM_BUS_ROUTE_UPDATES}")
-        self.send_message(routing_key=ROUTING_KEY_STM_BUS_ROUTE_UPDATES, message=message)
-
         # Store to MongoDB
-        self.mongodb_client.save(message["data"])
+        self.mongodb_client.save(payload_dict["data"])
 
         # Publish anomaly messages
         if anomaly_data:
-            anomaly_message = {"time": message["time"], "source": message["source"], "data": anomaly_data}
+            anomaly_message = {"time": time.time_ns(), "source": "telemetry_validation_service", "data": anomaly_data}
             self.logger.debug(f"Message: {anomaly_message}")
             self.logger.debug(f"Published to queue: {ROUTING_KEY_STM_NOTIFICATION}")
-            self.send_message(routing_key=ROUTING_KEY_STM_NOTIFICATION, message=anomaly_message)
+            # self.send_message(routing_key=ROUTING_KEY_STM_NOTIFICATION, message=anomaly_message)
 
 
 if __name__ == '__main__':
     service = TelemetryValidationService()
+    service.complete_setup()
+
+    while True:
+        try:
+            service.start_serving()
+        except KeyboardInterrupt:
+            exit(0)
+
+        except Exception as e:
+            print(f"The following exception occurred: {e}")
+            traceback.print_tb(e.__traceback__)
+            exit(0)
