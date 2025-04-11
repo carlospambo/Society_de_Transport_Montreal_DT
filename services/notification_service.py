@@ -1,3 +1,18 @@
+import sys
+import os
+
+current_dir = os.getcwd()
+
+assert os.path.basename(current_dir) == 'services', 'Current directory is not services'
+
+parent_dir = os.path.dirname(current_dir)
+
+software_dir = os.path.join(parent_dir, 'software')
+
+assert os.path.exists(software_dir), 'software folder not found in the repository root'
+
+sys.path.append(software_dir)
+
 import traceback
 import json
 import logging
@@ -11,7 +26,7 @@ from config.config import config_logger, load_config
 from communication.protocol import ROUTING_KEY_STM_NOTIFICATION
 from communication.rpc_server import RPCServer
 
-config_logger("config/logging.conf")
+
 
 class VehicleStopStatus(Enum):
     INCOMING_AT	= 1
@@ -48,11 +63,12 @@ class OccupancyStatus(Enum):
         except ValueError:
             raise ValueError(f"Invalid OccupancyStatus value: {value}")
 
+config_logger("logging.conf")
 
 class NotificationService(RPCServer):
 
     def __init__(self, smtp_host:str=None, port:int=None, sender:str=None, password:str=None, clients:str=None, rabbitmq_config:dict=None):
-        default_config = load_config("config/startup.conf")
+        default_config = load_config("startup.conf")
         self.logger = logging.getLogger("NotificationService")
 
         if rabbitmq_config is None:
@@ -73,9 +89,14 @@ class NotificationService(RPCServer):
         super().__init__(**rabbitmq_config)
 
 
-    def complete_setup(self):
+    def setup(self):
         # Subscribe to any message coming from the STM Telemetry Validation.
-        self.subscribe(routing_key=ROUTING_KEY_STM_NOTIFICATION, on_message_callback=self.send_alert)
+        super(NotificationService, self).setup(
+            routing_key=ROUTING_KEY_STM_NOTIFICATION,
+            queue_name=ROUTING_KEY_STM_NOTIFICATION,
+            on_message_callback=self.send_alert
+        )
+        self.declare_local_queue(routing_key=ROUTING_KEY_STM_NOTIFICATION)
         self.logger.info("NotificationService setup complete.")
 
 
@@ -109,7 +130,8 @@ class NotificationService(RPCServer):
             </tr>
         """
 
-    def _build_message_body(self, events:list) -> str:
+    @staticmethod
+    def _build_message_body(events:list) -> str:
         bus_lines = []
         rows = ""
         for e in events:
@@ -174,6 +196,7 @@ class NotificationService(RPCServer):
                 </body>
         """
 
+    @staticmethod
     def _build_messages(self, events:list) -> MIMEMultipart:
         msg = MIMEMultipart()
         msg["Subject"] = "[Action Required] for Société de Transport de Montréal Bus Fleet Digital Twin"
@@ -207,3 +230,16 @@ class NotificationService(RPCServer):
 
 if __name__ == '__main__':
     service = NotificationService()
+    service.setup()
+
+    while True:
+        try:
+            service.start_serving()
+        except KeyboardInterrupt:
+            exit(0)
+
+        except Exception as e:
+            print(f"The following exception occurred: {e}")
+            traceback.print_tb(e.__traceback__)
+            exit(0)
+            

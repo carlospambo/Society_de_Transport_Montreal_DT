@@ -1,3 +1,20 @@
+import sys
+import os
+
+current_dir = os.getcwd()
+
+assert os.path.basename(current_dir) == 'services', 'Current directory is not services'
+
+parent_dir = os.path.dirname(current_dir)
+
+software_dir = os.path.join(parent_dir, 'software')
+
+assert os.path.exists(software_dir), 'software folder not found in the repository root'
+
+sys.path.append(software_dir)
+
+print(software_dir)
+
 import json
 import traceback
 import logging
@@ -25,31 +42,30 @@ class CoordinateStatus(Enum):
 class TelemetryValidationService(RPCServer):
 
     def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None):
-        self.logger = logging.getLogger("TelemetryValidationService")
+        self._logger = logging.getLogger("TelemetryValidationService")
 
-        default_config = load_config("config/startup.conf")
+        default_config = load_config("startup.conf")
         if rabbitmq_config is None:
-            self.logger.debug("RabbitMQ config value is empty, reverting to default configs.")
+            self._logger.debug("RabbitMQ config value is empty, reverting to default configs.")
             rabbitmq_config = default_config['rabbitmq']
 
         if mongodb_config is None:
-            self.logger.debug("MongoDB config value is empty, reverting to default configs.")
+            self._logger.debug("MongoDB config value is empty, reverting to default configs.")
             mongodb_config = default_config["mongodb"]
 
         self.mongodb_client = MongoDB(**mongodb_config)
         super().__init__(**rabbitmq_config)
 
 
-    def complete_setup(self):
-        # Subscribe to any message coming from the STM GPS Routes Update.
-        self.setup(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION, queue_name=ROUTING_KEY_STM_TELEMETRY_VALIDATION, on_message_callback=self.validate_telemetry)
-        self.declare_local_queue(routing_key=ROUTING_KEY_STM_NOTIFICATION)
-        self.logger.info("TelemetryValidationService setup complete.")
-
-
     @staticmethod
     def _deg_to_rad(x):
         return x * math.pi / 180
+
+
+    def setup(self):
+        # Subscribe to any message coming from the STM GPS Routes Update.
+        self.subscribe(routing_key=ROUTING_KEY_STM_TELEMETRY_VALIDATION, on_message_callback=self.process_telemetry)
+        self._logger.info("TelemetryValidationService setup complete.")
 
 
     def _calculate_distance(self, from_coordinates:tuple, to_coordinates:tuple):
@@ -65,7 +81,7 @@ class TelemetryValidationService(RPCServer):
         try:
             return int(route['stop_sequence'])
         except KeyError as e:
-            self.logger.error(f"Error at extracting timestamp: {str(e)}")
+            self._logger.error(f"Error at extracting timestamp: {str(e)}")
             return 0
 
 
@@ -86,14 +102,14 @@ class TelemetryValidationService(RPCServer):
         status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
 
         if CoordinateStatus.ANOMALY == status:
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
+            self._logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
 
         if  max_allowed_distance <= distance <= 1.01: # check against the next bus stop
             bus_stop = routes[stop_sequence + 1]
             form_coordinates = (bus_stop['latitude'], bus_stop['longitude'])
             distance = self._calculate_distance(form_coordinates, to_coordinates)
             status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
+            self._logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
 
         elif distance >= 1.01: # reverse the order of bus stops
             routes.sort(key=self._routes_sort, reverse=True)
@@ -102,18 +118,18 @@ class TelemetryValidationService(RPCServer):
             distance = self._calculate_distance(form_coordinates, to_coordinates)
             status = CoordinateStatus.parse_from_distance(distance, max_allowed_distance)
 
-            self.logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
+            self._logger.debug(f"Distance: {distance}, Status: {status}, Bus Stop: {bus_stop}, Vehicle: {data}")
 
         return status, bus_stop['stop_name']
 
 
-    def validate_telemetry(self, channel, method, properties, json_payload:str):
-        self.logger.info(f"Received JSON payload: {json_payload}")
+    def process_telemetry(self, channel, method, properties, json_payload:str):
+        self._logger.info(f"Received JSON payload: {json_payload}")
 
         payload_dict = json.loads(json_payload)
 
         if 'data' not in payload_dict:
-            self.logger.error("Service received empty payload to be processed")
+            self._logger.error("Service received empty payload to be processed")
             return
 
         anomaly_data = []
@@ -131,11 +147,11 @@ class TelemetryValidationService(RPCServer):
                 bus_stop = ""
 
                 if results and len(results) > 0 and 'routes' in results[0]:
-                    self.logger.debug(f"Database returned: {results[0]}")
+                    self._logger.debug(f"Database returned: {results[0]}")
                     coordinates_status, bus_stop = self._determine_coordinates_status(results[0], payload_dict["data"][i])
 
                 else:
-                    self.logger.error(f"No data found in the database. Cannot validate coordinates for route : {route_id}")
+                    self._logger.error(f"No data found in the database. Cannot validate coordinates for route : {route_id}")
                     coordinates_status = CoordinateStatus.NOT_FOUND
 
                 payload_dict["data"][i]["vehicle.position.coordinates.status"] = coordinates_status.value
@@ -144,7 +160,7 @@ class TelemetryValidationService(RPCServer):
                     anomaly_data.append(payload_dict["data"][i])
 
             except AssertionError as e:
-                self.logger.error(f"{str(e)} for : {payload_dict['data'][i]}")
+                self._logger.error(f"{str(e)} for : {payload_dict['data'][i]}")
 
         # Store to MongoDB
         self.mongodb_client.save(payload_dict["data"])
@@ -152,14 +168,13 @@ class TelemetryValidationService(RPCServer):
         # Publish anomaly messages
         if anomaly_data:
             anomaly_message = {"time": time.time_ns(), "source": "telemetry_validation_service", "data": anomaly_data}
-            self.logger.debug(f"Message: {anomaly_message}")
-            self.logger.debug(f"Published to queue: {ROUTING_KEY_STM_NOTIFICATION}")
-            # self.send_message(routing_key=ROUTING_KEY_STM_NOTIFICATION, message=anomaly_message)
+            self._logger.debug(f"Message: {anomaly_message}")
+            self._logger.debug(f"Published to queue: {ROUTING_KEY_STM_NOTIFICATION}")
 
 
 if __name__ == '__main__':
     service = TelemetryValidationService()
-    service.complete_setup()
+    service.setup()
 
     while True:
         try:
