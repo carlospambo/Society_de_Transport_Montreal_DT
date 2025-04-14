@@ -1,0 +1,16 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: log6953fe
+      MONGO_INITDB_ROOT_PASSWORD: log6953fe
+    volumes:
+      - mongodb_data:/data/db
+
+volumes: # enable persistence of database data across container restart
+  mongodb_data:
+    driver: local
