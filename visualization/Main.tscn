@@ -1,0 +1,219 @@
+[gd_scene load_steps=11 format=3 uid="uid://c71j6ed8bjn6u"]
+
+[ext_resource type="Script" uid="uid://6oogno61bml1" path="res://scripts/main.gd" id="1_sq1r5"]
+[ext_resource type="Script" uid="uid://dlikhv88p4p40" path="res://RabbitMQListener.cs" id="2_fk53w"]
+[ext_resource type="Script" uid="uid://cv3leabgippuq" path="res://scripts/camera_3d.gd" id="3_3dxm6"]
+[ext_resource type="PackedScene" uid="uid://x153n1ajrncp" path="res://assets/map not joined.glb" id="3_r0du0"]
+[ext_resource type="Script" uid="uid://pirbfucr43t7" path="res://scripts/map_interpolation.gd" id="4_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://bwl3767nrqrda" path="res://reference_point.tscn" id="5_fos0i"]
+[ext_resource type="Script" uid="uid://de17p8xaxkex3" path="res://scripts/ControlScript.gd" id="7_lgr22"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_5y3g4"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_alkqg"]
+sky_material = SubResource("ProceduralSkyMaterial_5y3g4")
+
+[sub_resource type="Environment" id="Environment_37e08"]
+background_mode = 2
+background_energy_multiplier = 0.8
+sky = SubResource("Sky_alkqg")
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_sq1r5")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_37e08")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.0601922, 0.895993, 0.439971, -0.867032, -0.171472, 0.467817, 0.494603, -0.409628, 0.766533, 0, 0, 0)
+light_energy = 0.5
+shadow_enabled = true
+directional_shadow_split_1 = 0.2
+directional_shadow_split_2 = 0.4
+directional_shadow_split_3 = 0.8
+directional_shadow_max_distance = 1000.0
+
+[node name="rmq_listener" type="Node" parent="."]
+script = ExtResource("2_fk53w")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.583499, 0.489229, -0.648216, 1.58416e-08, 0.798184, 0.602414, 0.812114, 0.351508, -0.465739, 173.718, 79.7978, 43.4692)
+current = true
+script = ExtResource("3_3dxm6")
+
+[node name="Map" type="Node3D" parent="."]
+transform = Transform3D(110.58, 0, 0, 0, 110.58, 0, 0, 0, 110.58, -0.670182, 0, 0.661072)
+
+[node name="map not joined2" parent="Map" instance=ExtResource("3_r0du0")]
+transform = Transform3D(0.00162083, 0, 0, 0, 0.00162083, 0, 0, 0, 0.00162083, -4.88102, 0, -8.03741)
+
+[node name="MapInterpolation" type="Node" parent="."]
+script = ExtResource("4_cm0pq")
+
+[node name="ReferencePoints" type="Node3D" parent="MapInterpolation"]
+
+[node name="ReferencePoint" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+latitude = 45.5086
+longitude = -73.5896
+
+[node name="ReferencePoint2" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 598.893, 1.71661e-05, -61.9222)
+latitude = 45.5086
+longitude = -73.5487
+
+[node name="ReferencePoint3" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 592.543, 1.71661e-05, 57.8515)
+latitude = 45.5025
+longitude = -73.5491
+
+[node name="ReferencePoint4" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 323.935, 2.47955e-05, 123.162)
+latitude = 45.4992
+longitude = -73.5683
+
+[node name="ReferencePoint5" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 177.112, 0, -6.68924)
+latitude = 45.5057
+longitude = -73.5788
+
+[node name="ReferencePoint6" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.882, 0, 46.3126)
+latitude = 45.5031
+longitude = -73.5825
+
+[node name="ReferencePoint7" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.4466, -3.8147e-06, 166.1)
+latitude = 45.4971
+longitude = -73.5892
+
+[node name="ReferencePoint8" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.32, -3.8147e-06, 308.207)
+latitude = 45.4899
+longitude = -73.5882
+
+[node name="ReferencePoint9" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.4634, -3.8147e-06, 441.682)
+latitude = 45.4832
+longitude = -73.5896
+
+[node name="ReferencePoint10" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 170.615, 0, 134.197)
+latitude = 45.4987
+longitude = -73.5793
+
+[node name="ReferencePoint11" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 249.635, 0, 19.9801)
+latitude = 45.5044
+longitude = -73.5736
+
+[node name="ReferencePoint12" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 296.493, -0.137743, -83.1038)
+latitude = 45.5097
+longitude = -73.0
+
+[node name="ReferencePoint13" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -351.479, 34.0087, 269.112)
+latitude = 45.4919
+longitude = -73.6165
+
+[node name="ReferencePoint14" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 325.888, 0, -256.627)
+latitude = 45.5183
+longitude = -73.5681
+
+[node name="ReferencePoint15" parent="MapInterpolation/ReferencePoints" instance=ExtResource("5_fos0i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86.5147, 0, -176.051)
+latitude = 45.5142
+longitude = -73.5852
+
+[node name="BusStops" type="Node3D" parent="."]
+
+[node name="Controls" type="ColorRect" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -259.0
+offset_top = 22.0
+offset_right = -24.0
+offset_bottom = 316.0
+grow_horizontal = 0
+color = Color(0.08, 0.08, 0.08, 0.662745)
+
+[node name="VBox" type="VBoxContainer" parent="Controls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_lgr22")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Controls/VBox"]
+layout_mode = 2
+text = "Controls"
+fit_content = true
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Controls/VBox"]
+layout_mode = 2
+
+[node name="ReferencePointstoggle" type="CheckButton" parent="Controls/VBox"]
+layout_mode = 2
+focus_mode = 0
+button_pressed = true
+text = "Enable Reference Points"
+
+[node name="BusStopsToggle" type="CheckButton" parent="Controls/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+focus_mode = 0
+button_pressed = true
+text = "Enable Bus Stops"
+
+[node name="RoutesSubscribed" type="RichTextLabel" parent="Controls/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+text = "Currently subscribed routes: "
+fit_content = true
+selection_enabled = true
+
+[node name="AddRoutes" type="HBoxContainer" parent="Controls/VBox"]
+layout_mode = 2
+
+[node name="AddRoutesText" type="LineEdit" parent="Controls/VBox/AddRoutes"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 1
+placeholder_text = "e.g.: 121, 24, 45"
+
+[node name="Button" type="Button" parent="Controls/VBox/AddRoutes"]
+layout_mode = 2
+focus_mode = 0
+text = "Add"
+
+[node name="RemoveRoutes" type="HBoxContainer" parent="Controls/VBox"]
+layout_mode = 2
+
+[node name="RemoveRoutesText" type="LineEdit" parent="Controls/VBox/RemoveRoutes"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 1
+placeholder_text = "e.g.: 121, 24, 45"
+
+[node name="Button" type="Button" parent="Controls/VBox/RemoveRoutes"]
+layout_mode = 2
+focus_mode = 0
+text = "Remove"
+
+[connection signal="toggled" from="Controls/VBox/ReferencePointstoggle" to="." method="toggle_reference_points"]
+[connection signal="toggled" from="Controls/VBox/BusStopsToggle" to="." method="toggle_bus_stops"]
+[connection signal="pressed" from="Controls/VBox/AddRoutes/Button" to="." method="add_to_subscribed_routes"]
+[connection signal="pressed" from="Controls/VBox/RemoveRoutes/Button" to="." method="remove_from_subscribed_routes"]

@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://bwl3767nrqrda"]
+
+[ext_resource type="Script" uid="uid://w7y3ncinjkfl" path="res://scripts/reference_point.gd" id="1_gikra"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x5fj6"]
+albedo_color = Color(0, 0.333333, 1, 1)
+
+[node name="ReferencePoint" type="Node3D"]
+script = ExtResource("1_gikra")
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="."]
+transform = Transform3D(0.995521, 0, 0, 0, 0.965445, 0, 0, 0, 0.996033, 0, 0, 0)
+height = 200.0
+material = SubResource("StandardMaterial3D_x5fj6")

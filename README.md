@@ -9,6 +9,7 @@ Project for a digital twin (DT) for the Société de Transport de Montréal (STM
 4. [Docker](https://www.docker.com/)
 5. [RabbitMQ](https://www.rabbitmq.com/)
 6. [MongoDB](https://www.mongodb.com/)
+7. [Godot](https://godotengine.org/)
 
 ## Run Digital Twin
 
@@ -41,6 +42,12 @@ python -m startup.start_route_update_service "140, 121, 45, 41"
 - Once sure that the `Telemetry-Valdiation-Service` service is running, then navigate to [`Notification-Service.ipynb`](services/Notification-Service.ipynb) notebook;
 - Run the cells on the notebook;
 - Update values in the [configuration file](services/startup.conf) to send the emails to an account other than the default.
+
+## Run Visualization Service
+
+- Do the `Run Digital Twin` step
+- Open visualization/project.godot with Godot 4.4.1
+- Press play at the top right
 
 ## STM API OAuth
 

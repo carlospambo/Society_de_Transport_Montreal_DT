@@ -1,0 +1,127 @@
+[gd_scene load_steps=12 format=3 uid="uid://c71j6ed8bjn6u"]
+
+[ext_resource type="Script" uid="uid://6oogno61bml1" path="res://main.gd" id="1_sq1r5"]
+[ext_resource type="Script" uid="uid://dlikhv88p4p40" path="res://RabbitMQListener.cs" id="2_fk53w"]
+[ext_resource type="PackedScene" uid="uid://x153n1ajrncp" path="res://map not joined.glb" id="3_r0du0"]
+[ext_resource type="Script" uid="uid://pirbfucr43t7" path="res://map_interpolation.gd" id="4_cm0pq"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_5y3g4"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_alkqg"]
+sky_material = SubResource("ProceduralSkyMaterial_5y3g4")
+
+[sub_resource type="Environment" id="Environment_37e08"]
+background_mode = 2
+background_energy_multiplier = 0.8
+sky = SubResource("Sky_alkqg")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_n3tae"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eh76j"]
+albedo_color = Color(0.921569, 0.34902, 0.34902, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yjyy4"]
+albedo_color = Color(0.872577, 0.000617999, 0.874077, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e0r6h"]
+albedo_color = Color(0.211765, 1, 1, 1)
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_sq1r5")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_37e08")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.0601922, 0.895993, 0.439971, -0.867032, -0.171472, 0.467817, 0.494603, -0.409628, 0.766533, 0, 0, 0)
+light_energy = 0.5
+shadow_enabled = true
+directional_shadow_split_1 = 0.2
+directional_shadow_split_2 = 0.4
+directional_shadow_split_3 = 0.8
+directional_shadow_max_distance = 1000.0
+
+[node name="rmq_listener" type="Node" parent="."]
+script = ExtResource("2_fk53w")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.798184, 0.602414, 0, -0.602414, 0.798184, 0, 2.24229, 3.30512)
+current = true
+
+[node name="Node3D" type="Node3D" parent="."]
+transform = Transform3D(110.58, 0, 0, 0, 110.58, 0, 0, 0, 110.58, -0.670182, 0, 0.661072)
+
+[node name="map not joined2" parent="Node3D" instance=ExtResource("3_r0du0")]
+transform = Transform3D(0.00162083, 0, 0, 0, 0.00162083, 0, 0, 0, 0.00162083, -4.88102, 0, -8.03741)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(4.77407, 0, -1.94215, 0, 5.57348, 0, 1.77318, 0, 5.22899, 6.09259, 0.01, 1.73594)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_eh76j")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(2.1611, 0.0312529, 0.0322257, -0.0285544, 2.36533, -0.000425795, -0.0294248, 0, 2.36724, 0.78592, 0.059622, -0.576335)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_yjyy4")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(1.46035, 0.0312529, -1.74513, -0.0192955, 2.36533, 0.0230582, 1.59344, 0, 1.59965, -0.347251, 0.0745945, 1.91759)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_yjyy4")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(0.648295, 0.062767, -0.603318, -0.0771875, 0.929289, -0.00266441, 0.548402, 0.0565969, 0.712839, -1.15949, 0.131028, 3.24932)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_e0r6h")
+
+[node name="MeshInstance3D7" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(0.423793, 0.0520805, -0.808679, -0.0538124, 0.930895, 0.0262179, 0.737897, 0.0379758, 0.466357, -2.01332, 0.122992, 4.12537)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_e0r6h")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(0.648295, 0.062767, -0.603318, -0.0771875, 0.929289, -0.00266441, 0.548402, 0.0565969, 0.712839, 0.00862305, 0.137306, 1.85076)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_e0r6h")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(0.766518, 0.0695942, -0.299155, -0.0740636, 0.929561, -0.00609323, 0.365998, 0.0423537, 0.625293, 0.721993, 0.140145, 0.761077)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_e0r6h")
+
+[node name="MeshInstance3D8" type="MeshInstance3D" parent="Node3D"]
+transform = Transform3D(0.728696, 0.0530341, -0.357763, -0.0517868, 0.931361, 0.0064731, 0.439671, 0.0218035, 0.593705, 1.88735, 0.0627368, -0.260826)
+visible = false
+mesh = SubResource("PlaneMesh_n3tae")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_e0r6h")
+
+[node name="MapInterpolation" type="Node" parent="."]
+script = ExtResource("4_cm0pq")
+
+[node name="CSGSphere3D" type="CSGSphere3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -351.521, 43.0387, 269.091)
+
+[node name="CSGSphere3D2" type="CSGSphere3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 598.636, 2.51758, -61.6786)
+
+[node name="CSGSphere3D3" type="CSGSphere3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 323.963, 16.0448, 123.113)
