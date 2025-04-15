@@ -11,6 +11,10 @@ Project for a digital twin (DT) for the Société de Transport de Montréal (STM
 6. [MongoDB](https://www.mongodb.com/)
 7. [Godot](https://godotengine.org/)
 
+## Architecture
+
+![](architecture.png)
+
 ## Run Digital Twin
 
 - Navigate to the `root` folder of the project and run the command to install all Python dependencies:
