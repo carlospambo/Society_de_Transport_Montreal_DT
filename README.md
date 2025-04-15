@@ -46,7 +46,7 @@ python -m startup.start_route_update_service "140, 121, 45, 41"
 ## Run Visualization Service
 
 - Do the `Run Digital Twin` step
-- Open visualization/project.godot with Godot 4.4.1
+- Open visualization/project.godot with Godot 4.4.1 (C#/.NET version)
 - Press play at the top right
 
 ## STM API OAuth
