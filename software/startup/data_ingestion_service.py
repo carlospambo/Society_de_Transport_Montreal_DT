@@ -6,7 +6,7 @@ import pandas as pd
 from config.config import config_logger, load_config
 from communication.rpc_server import RPCServer
 from communication.mongodb import MongoDB
-from communication.protocol import ROUTING_KEY_STM_TELEMETRY_VALIDATION, ROUTING_KEY_STM_BUS_ROUTE_UPDATES, STM_API_URL, STM_API_HEADER
+from communication.protocol import ROUTING_KEY_STM_TELEMETRY_VALIDATION, ROUTING_KEY_STM_BUS_ROUTE_UPDATES, STM_API_URL, STM_API_HEADER, EXECUTION_INTERVAL
 from google.transit.gtfs_realtime_pb2 import FeedMessage
 from protobuf_to_dict import protobuf_to_dict
 
@@ -26,10 +26,10 @@ def flatten_response(data:list[dict]) -> list[dict]:
         flatten_data.append(pd.json_normalize(entity).T.to_dict()[0])
     return flatten_data
 
-class RoutingService(RPCServer):
+class DataIngestionService(RPCServer):
 
     def __init__(self, rabbitmq_config:dict=None, mongodb_config:dict=None, url:str=None, headers:dict=None):
-        self.logger = logging.getLogger("RoutingService")
+        self.logger = logging.getLogger("DataIngestionService")
         default_config = load_config("config/startup.conf")
         if rabbitmq_config is None:
             self.logger.error("RabbitMQ config value is empty, reverting to default configs.")
@@ -106,8 +106,8 @@ class RoutingService(RPCServer):
         return self.process_response(self.fetch_bus_route_data(), route_ids)
 
 
-    def fetch_and_update_route(self, execution_interval, route_ids:list[int]=None, strict_interval=False) -> None:
-
+    def fetch_and_update_route(self, execution_interval=None, route_ids:list[int]=None, strict_interval=False) -> None:
+        execution_interval = EXECUTION_INTERVAL if execution_interval is None else execution_interval
         try:
             while True:
                 start = time.time()
@@ -136,7 +136,7 @@ class RoutingService(RPCServer):
             raise
 
 
-    def start(self, execution_interval, route_ids:list[int]=None):
+    def ingest(self, execution_interval=None, route_ids:list[int]=None):
 
         while True:
             try:
@@ -151,5 +151,5 @@ class RoutingService(RPCServer):
 
 
 if __name__ == '__main__':
-    service = RoutingService()
-    service.start(15, [45, 55, 121])
+    service = DataIngestionService()
+    service.ingest(route_ids = [41, 45, 121])

@@ -54,14 +54,14 @@ export STM_API_KEY=APIKey
 pip install -r requirements.txt
 ```
 
-- Then, navigate to the `software` folder and run the command to start all services:
+- Then, navigate to the `software` folder and run the command to start the `data ingestion service`:
 ```
-python -m startup.start_route_update_service
+python -m startup.start_data_ingestion_service
 ```
 
-- or, add the parameter after the module script to the command to run the services for a select number of bus routes, i.e: for buses `121, 45, and 41` only:
+- or, add the parameter after the module script to the command to run the `data ingestion service` for a select number of bus routes, i.e.: buses `121, 45, and 41` only:
 ```
-python -m startup.start_route_update_service "121, 45, 41"
+python -m startup.start_data_ingestion_service "121, 45, 41"
 ```
 
 
