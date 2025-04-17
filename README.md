@@ -15,43 +15,11 @@ Project for a digital twin (DT) for the Société de Transport de Montréal (STM
 
 ![](architecture.png)
 
-## Run Digital Twin
 
-- Navigate to the `root` folder of the project and run the command to install all Python dependencies:
-```
-pip install -r requirements.txt
-```
+## STM API Data
+- The STM API uses the [GTFS](https://gtfs.org/) protocol for data exchange.
+- The data dictionary for the API can be found [here](https://developers.google.com/transit/gtfs-realtime/reference?hl=en)
 
-- Then, navigate to the `software` folder and run the command to start all services:
-```
-python -m startup.start_route_update_service
-```
-
-- or, add the parameter after the module script to the command to run the services for a select number of bus routes, i.e: for buses `121, 41, and 45` only:
-```
-python -m startup.start_route_update_service "140, 121, 45, 41"
-```
-
-## Run Telemetry Service
-
-- Open a terminal window and launch `Jupyter Notebook`;
-- On the Jupyter tree browser page navigate to the `services` folder of the project;
-- Run the cells on [`Telemetry-Valdiation-Service`](services/Telemetry-Validation-Service.ipynb) notebook;
-
-## Run Notification Service
-
-- Open a terminal window and launch `Jupyter Notebook`;
-- On the Jupyter tree browser page navigate to the `services` folder of the project;
-- Follow the steps to launch the [`Telemetry-Valdiation-Service`](services/Telemetry-Validation-Service.ipynb) first;
-- Once sure that the `Telemetry-Valdiation-Service` service is running, then navigate to [`Notification-Service.ipynb`](services/Notification-Service.ipynb) notebook;
-- Run the cells on the notebook;
-- Update values in the [configuration file](services/startup.conf) to send the emails to an account other than the default.
-
-## Run Visualization Service
-
-- Do the `Run Digital Twin` step
-- Open visualization/project.godot with Godot 4.4.1 (C#/.NET version)
-- Press play at the top right
 
 ## STM API OAuth
 
@@ -78,9 +46,48 @@ echo $STM_API_KEY
 export STM_API_KEY=APIKey
 ```
 
-## STM API Data
-- The STM API uses the [GTFS](https://gtfs.org/) protocol for data exchange. 
-- The data dictionary for the API can be found [here](https://developers.google.com/transit/gtfs-realtime/reference?hl=en)
+
+## Run Data Ingestion Service
+
+- Navigate to the `root` folder of the project and run the command to install all Python dependencies:
+```
+pip install -r requirements.txt
+```
+
+- Then, navigate to the `software` folder and run the command to start all services:
+```
+python -m startup.start_route_update_service
+```
+
+- or, add the parameter after the module script to the command to run the services for a select number of bus routes, i.e: for buses `121, 45, and 41` only:
+```
+python -m startup.start_route_update_service "121, 45, 41"
+```
+
+
+## Run Telemetry Service
+
+- Open a terminal window and launch `Jupyter Notebook`;
+- On the Jupyter tree browser page navigate to the `services` folder of the project;
+- Run the cells on [`Telemetry-Valdiation-Service`](services/Telemetry-Validation-Service.ipynb) notebook;
+
+
+## Run Notification Service
+
+- Open a terminal window and launch `Jupyter Notebook`;
+- On the Jupyter tree browser page navigate to the `services` folder of the project;
+- Follow the steps to launch the [`Telemetry-Valdiation-Service`](services/Telemetry-Validation-Service.ipynb) first;
+- Once sure that the `Telemetry-Valdiation-Service` service is running, then navigate to [`Notification-Service.ipynb`](services/Notification-Service.ipynb) notebook;
+- Run the cells on the notebook;
+- Update values in the [configuration file](services/startup.conf) to send the emails to an account other than the default.
+
+
+## Run Visualization Service
+
+- Complete the `Run Data Ingestion Service` step
+- Open visualization/project.godot with Godot 4.4.1 (C#/.NET version)
+- Press the play button (the button is onn the top right corner of the window)
+
 
 ## Authors
 
